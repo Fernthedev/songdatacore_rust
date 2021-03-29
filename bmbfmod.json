@@ -1,0 +1,23 @@
+{
+  "id": "songdatacore",
+  "name": "SongDataCore",
+  "version": "0.1.0",
+  "author": "Fernthedev",
+  "description": [
+    "A utility library for other mods to use for getting song data."
+  ],
+  "category": "Gameplay",
+  "gameVersion": "1.13.2",
+  "platform": "Quest",
+  "components": [
+    {
+      "type": "HookMod",
+      "installAction": {
+        "installLibraryFile": "libsong_data_core_rust.so"
+      },
+      "uninstallAction": {
+        "removeLibraryFile": "libsong_data_core_rust.so"
+      }
+    }
+  ]
+}
