@@ -120,6 +120,7 @@ pub fn beatstar_get_song(hash: &str) -> Result<&BeatStarSong, Response> {
 
 ///
 /// Parses the entire JSON
+/// This takes an average of 700 MS, do better?
 ///
 fn parse_beatstar(songs: &[BeatStarSongJson]) -> BeatStarDataFile {
     let mut song_converted: Vec<BeatStarSong> = vec![];
@@ -136,12 +137,9 @@ fn parse_beatstar(songs: &[BeatStarSongJson]) -> BeatStarDataFile {
         for diff in &mut song.diffs {
             let diff_type = diff.get_diff_type();
 
-            song.characteristics.entry(diff_type).or_insert_with(HashMap::new);
+            let map = song.characteristics.entry(diff_type).or_insert_with(HashMap::new);
 
-            song.characteristics
-                .get_mut(&diff_type)
-                .unwrap()
-                .insert(diff.diff.clone(), diff.clone());
+            map.insert(diff.diff.clone(), diff.clone());
         }
 
         song_map.insert(CString::new(song.hash.clone()).unwrap(), song);

@@ -4,6 +4,7 @@ use std::collections::HashMap;
 use std::result;
 use std::str::FromStr;
 use std::ffi::CString;
+use std::borrow::Borrow;
 
 #[repr(C)]
 pub struct BeatStarDataFile {
@@ -72,22 +73,22 @@ impl BeatStarSong {
     pub fn convert(og: &BeatStarSongJson) -> BeatStarSong {
         let mut diff_convert: Vec<BeatStarSongDifficultyStats> = vec![];
 
-        for diff in og.diffs.clone() {
-            diff_convert.push(BeatStarSongDifficultyStats::convert(&diff))
+        for diff in &og.diffs {
+            diff_convert.push(BeatStarSongDifficultyStats::convert(diff))
         }
 
         let mut characteristics_convert: HashMap<BeatStarCharacteristics, HashMap<CString, BeatStarSongDifficultyStats>> = HashMap::new();
 
-        for (char_star, char_map) in og.characteristics.clone() {
+        for (char_star, char_map) in og.characteristics.borrow() {
             let mut char_map_convert: HashMap<CString, BeatStarSongDifficultyStats> = HashMap::new();
 
             for (str, diff_json) in char_map {
 
 
-                char_map_convert.insert(CString::new(str).unwrap(), BeatStarSongDifficultyStats::convert(&diff_json));
+                char_map_convert.insert(CString::new(str.clone()).unwrap(), BeatStarSongDifficultyStats::convert(&diff_json));
             }
 
-            characteristics_convert.insert(char_star, char_map_convert);
+            characteristics_convert.insert(*char_star, char_map_convert);
 
         }
 
