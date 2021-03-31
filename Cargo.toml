@@ -7,7 +7,7 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-ureq = "2.1.0" # For HTTP
+ureq = {version = "2.1.0", features = ["json"]} # For HTTP
 cbindgen = "0.18.0" # For creating the C++ binding headers
 serde = "1.0.125" # Parsing JSON
 serde_json = "1.*" # Parsing JSON

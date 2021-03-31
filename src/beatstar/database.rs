@@ -30,18 +30,27 @@ lazy_static! {
 ///
 pub fn beatstar_update_database() -> Option<Response> {
     if BEAT_STAR_FILE.get().is_none() {
+        println!("Fetching from internet");
+        let mut stopwatch = Stopwatch::start_new();
         let response = AGENT.get(SCRAPED_SCORE_SABER_URL).call().unwrap();
+        println!("Received data from internet in {0}ms", stopwatch.elapsed().as_millis());
 
         if response.status() == HTTP_OK {
-            let mut stopwatch = Stopwatch::start_new();
 
-            let body = response.into_string().unwrap();
 
-            let parsed_data = parse_beatstar(body.as_str());
+
+
+            let body: Vec<BeatStarSongJson> = response.into_json().unwrap();
+
+
+            let parsed_data = parse_beatstar(&body);
 
             BEAT_STAR_FILE.get_or_init(|| {parsed_data});
 
+            println!("Fully parsed beat file in {0}ms", stopwatch.elapsed().as_millis());
+
             stopwatch.stop();
+
         } else {
             return Some(response);
         }
@@ -112,9 +121,7 @@ pub fn beatstar_get_song(hash: &str) -> Result<&BeatStarSong, Response> {
 ///
 /// Parses the entire JSON
 ///
-fn parse_beatstar(input: &str) -> BeatStarDataFile {
-    let songs: Vec<BeatStarSongJson> = serde_json::from_str(input).unwrap();
-
+fn parse_beatstar(songs: &[BeatStarSongJson]) -> BeatStarDataFile {
     let mut song_converted: Vec<BeatStarSong> = vec![];
 
     for song in songs {

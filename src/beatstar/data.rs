@@ -39,7 +39,7 @@ pub struct BeatStarSongJson {
 
     pub hash: String,
 
-    #[serde(rename = "Characteristics")]
+    #[serde(skip_deserializing)]
     pub characteristics:
         HashMap<BeatStarCharacteristics, HashMap<String, BeatStarSongDifficultyStatsJson>>,
 }
