@@ -41,7 +41,7 @@ pub fn beatstar_update_database() -> Option<Response> {
 
 
             let body: Vec<BeatStarSongJson> = response.into_json().unwrap();
-
+            println!("Parsed beat file into json data in {0}ms", stopwatch.elapsed().as_millis());
 
             let parsed_data = parse_beatstar(&body);
 
