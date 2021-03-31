@@ -9,6 +9,8 @@ language = "C++"
 # default: doesn't emit a `#pragma once`
 pragma_once = true
 
+namespace = "song_data_core"
+
 # A list of substitutions for converting cfg's to ifdefs. cfgs which aren't
 # defined here will just be discarded.
 #

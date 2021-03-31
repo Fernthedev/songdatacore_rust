@@ -1,11 +1,11 @@
-use crate::beatstar::data::{BeatStarDataFile, BeatStarSongJson, BeatStarSong};
+use crate::beatstar::data::{BeatStarDataFile, BeatStarSongJson, BeatStarSong, RustCStringWrapper};
 use crate::beatstar::BEAT_STAR_FILE;
 use std::collections::HashMap;
 use std::time::{Duration};
 use stopwatch::Stopwatch;
 use ureq::{Agent, Response};
 use std::os::raw::c_char;
-use std::ffi::{CStr, CString};
+use std::ffi::{CStr};
 use std::ptr;
 
 
@@ -112,7 +112,7 @@ pub unsafe extern fn beatstar_get_song_extern(hash: *const c_char) -> *const Bea
 pub fn beatstar_get_song(hash: &str) -> Result<&BeatStarSong, Response> {
     return match beatstar_update_database() {
         None => {
-            Ok(BEAT_STAR_FILE.get().unwrap().songs.get(CString::new(hash).unwrap().as_c_str()).unwrap())
+            Ok(BEAT_STAR_FILE.get().unwrap().songs.get(&RustCStringWrapper::new(hash)).unwrap())
         }
         Some(e) => Err(e)
     }
@@ -129,7 +129,7 @@ fn parse_beatstar(songs: &[BeatStarSongJson]) -> BeatStarDataFile {
         song_converted.push(BeatStarSong::convert(&song))
     }
 
-    let mut song_map: HashMap<CString, BeatStarSong> = HashMap::new();
+    let mut song_map: HashMap<RustCStringWrapper, BeatStarSong> = HashMap::new();
 
     for mut song in song_converted {
         song.characteristics = HashMap::new();
@@ -142,7 +142,7 @@ fn parse_beatstar(songs: &[BeatStarSongJson]) -> BeatStarDataFile {
             map.insert(diff.diff.clone(), diff.clone());
         }
 
-        song_map.insert(CString::new(song.hash.clone()).unwrap(), song);
+        song_map.insert(song.hash.clone(), song);
     }
 
     BeatStarDataFile { songs: song_map }

@@ -3,13 +3,65 @@ use std::collections::HashMap;
 
 use std::result;
 use std::str::FromStr;
-use std::ffi::CString;
+use std::ffi::{CString, CStr};
 use std::borrow::Borrow;
+use std::os::raw::c_char;
+
+
+#[derive(Clone, Eq, PartialEq, Hash, Ord, PartialOrd)]
+#[repr(C)]
+pub struct RustCStringWrapper {
+    pub cstring: CString,
+    pub string_data: *const c_char
+}
+
+unsafe impl Send for RustCStringWrapper {
+
+}
+
+unsafe impl Sync for RustCStringWrapper {
+
+}
+
+impl ToString for RustCStringWrapper {
+    fn to_string(&self) -> String {
+        if self.string_data.is_null() {
+            return String::new()
+        }
+
+        let raw = unsafe { CStr::from_ptr(self.string_data) };
+
+        let hash_str = match raw.to_str() {
+            Ok(s) => s,
+            Err(_) => return String::new(),
+        };
+
+        hash_str.to_string()
+    }
+}
+
+impl RustCStringWrapper {
+    pub fn new<T: Into<Vec<u8>>>(str_data: T) -> RustCStringWrapper {
+        let c_string  = CString::new(str_data).expect("RustCStringWrapper::new failed");
+        let ptr = c_string.as_ptr();
+        RustCStringWrapper {
+            cstring: c_string,
+            string_data: ptr
+        }
+    }
+}
 
 #[repr(C)]
 pub struct BeatStarDataFile {
-    pub songs: HashMap<CString, BeatStarSong>,
+    pub songs: HashMap<RustCStringWrapper, BeatStarSong>,
 }
+
+//
+// impl BeatStarDataFile {
+//     pub extern fn get_song(self, song: *const c_char) -> *const BeatStarSong {
+//         return self.songs.get(&RustCStringWrapper::new(song)).unwrap_or_else(ptr::null());
+//     }
+// }
 
 
 #[serde(rename_all = "PascalCase", rename = "with typo")]
@@ -53,11 +105,11 @@ pub struct BeatStarSong {
     pub played_count: u32,
     pub upvotes: u32,
     pub downvotes: u32,
-    pub key: CString,
+    pub key: RustCStringWrapper,
     pub diffs: Vec<BeatStarSongDifficultyStats>,
-    pub uploaded: CString,
-    pub hash: CString,
-    pub characteristics: HashMap<BeatStarCharacteristics, HashMap<CString, BeatStarSongDifficultyStats>>,
+    pub uploaded: RustCStringWrapper,
+    pub hash: RustCStringWrapper,
+    pub characteristics: HashMap<BeatStarCharacteristics, HashMap<RustCStringWrapper, BeatStarSongDifficultyStats>>,
 }
 
 impl BeatStarSong {
@@ -69,6 +121,12 @@ impl BeatStarSong {
         tmp - (tmp - 0.5) * (2_i32.pow(-(tot + 1f32).log10() as u32) as f32)
     }
 
+    // pub extern fn get_characteristic(self, beat_char: *BeatStarCharacteristics, beat_key2: *const c_char) -> &BeatStarSongDifficultyStats {
+    //     return match self.characteristics.get(&beat_char) {
+    //         Some(map) => map.get(&RustCStringWrapper::new(beat_key2)).unwrap_or_else(ptr::null()),
+    //         None => ptr::null()
+    //     }
+    // }
 
     pub fn convert(og: &BeatStarSongJson) -> BeatStarSong {
         let mut diff_convert: Vec<BeatStarSongDifficultyStats> = vec![];
@@ -77,15 +135,15 @@ impl BeatStarSong {
             diff_convert.push(BeatStarSongDifficultyStats::convert(diff))
         }
 
-        let mut characteristics_convert: HashMap<BeatStarCharacteristics, HashMap<CString, BeatStarSongDifficultyStats>> = HashMap::new();
+        let mut characteristics_convert: HashMap<BeatStarCharacteristics, HashMap<RustCStringWrapper, BeatStarSongDifficultyStats>> = HashMap::new();
 
         for (char_star, char_map) in og.characteristics.borrow() {
-            let mut char_map_convert: HashMap<CString, BeatStarSongDifficultyStats> = HashMap::new();
+            let mut char_map_convert: HashMap<RustCStringWrapper, BeatStarSongDifficultyStats> = HashMap::new();
 
             for (str, diff_json) in char_map {
 
 
-                char_map_convert.insert(CString::new(str.clone()).unwrap(), BeatStarSongDifficultyStats::convert(&diff_json));
+                char_map_convert.insert(RustCStringWrapper::new(str.clone()), BeatStarSongDifficultyStats::convert(&diff_json));
             }
 
             characteristics_convert.insert(*char_star, char_map_convert);
@@ -97,10 +155,10 @@ impl BeatStarSong {
             played_count: og.played_count,
             upvotes: og.upvotes,
             downvotes: og.downvotes,
-            key: CString::new(og.key.clone()).unwrap(),
+            key: RustCStringWrapper::new(og.key.clone()),
             diffs: diff_convert,
-            uploaded: CString::new(og.uploaded.clone()).unwrap(),
-            hash: CString::new(og.hash.clone()).unwrap(),
+            uploaded: RustCStringWrapper::new(og.uploaded.clone()),
+            hash: RustCStringWrapper::new(og.hash.clone()),
             characteristics: characteristics_convert
         }
     }
@@ -133,7 +191,7 @@ pub struct BeatStarSongDifficultyStatsJson {
 #[derive(Clone)]
 #[repr(C)]
 pub struct BeatStarSongDifficultyStats {
-    pub diff: CString,
+    pub diff: RustCStringWrapper,
     pub scores: i64,
     pub stars: f64,
     pub ranked: bool,
@@ -141,13 +199,13 @@ pub struct BeatStarSongDifficultyStats {
     pub bombs: u32,
     pub notes: u32,
     pub obstacles: u32,
-    pub char: CString,
+    pub char: RustCStringWrapper,
 }
 
 impl BeatStarSongDifficultyStats {
     #[no_mangle]
     pub extern fn get_diff_type(&self) -> BeatStarCharacteristics {
-        return match BeatStarCharacteristics::from_str(self.char.clone().into_string().unwrap().as_str()) {
+        return match BeatStarCharacteristics::from_str(self.char.to_string().as_str()) {
             Ok(e) => e,
             Err(_) => BeatStarCharacteristics::Unknown,
         };
@@ -155,7 +213,7 @@ impl BeatStarSongDifficultyStats {
 
     pub fn convert(og: &BeatStarSongDifficultyStatsJson) -> BeatStarSongDifficultyStats {
         BeatStarSongDifficultyStats {
-            diff: CString::new(og.diff.clone()).unwrap(),
+            diff: RustCStringWrapper::new(og.diff.clone()),
             scores: og.scores,
             stars: og.stars,
             ranked: og.ranked,
@@ -163,7 +221,7 @@ impl BeatStarSongDifficultyStats {
             bombs: og.bombs,
             notes: og.notes,
             obstacles: og.obstacles,
-            char: CString::new(og.char.clone()).unwrap()
+            char: RustCStringWrapper::new(og.char.clone())
         }
     }
 }
