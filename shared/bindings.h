@@ -4,8 +4,6 @@
 #include <ostream>
 #include <new>
 
-static const uint64_t MAX_DELAY = ((60 * 60) * 12);
-
 enum class BeatStarCharacteristics {
   Unknown,
   Standard,
@@ -20,16 +18,11 @@ enum class BeatStarCharacteristics {
 template<typename K = void, typename V = void, typename Hasher = void>
 struct HashMap;
 
-template<typename T = void, typename E = void>
-struct Result;
-
-struct String;
-
 template<typename T = void>
 struct Vec;
 
 struct BeatStarSongDifficultyStats {
-  String diff;
+  CString diff;
   int64_t scores;
   double stars;
   bool ranked;
@@ -37,7 +30,7 @@ struct BeatStarSongDifficultyStats {
   uint32_t bombs;
   uint32_t notes;
   uint32_t obstacles;
-  String char_;
+  CString char_;
 };
 
 struct BeatStarSong {
@@ -45,21 +38,32 @@ struct BeatStarSong {
   uint32_t played_count;
   uint32_t upvotes;
   uint32_t downvotes;
-  String key;
+  CString key;
   Vec<BeatStarSongDifficultyStats> diffs;
-  String uploaded;
-  String hash;
-  HashMap<BeatStarCharacteristics, HashMap<String, BeatStarSongDifficultyStats>> characteristics;
+  CString uploaded;
+  CString hash;
+  HashMap<BeatStarCharacteristics, HashMap<CString, BeatStarSongDifficultyStats>> characteristics;
 };
 
 struct BeatStarDataFile {
-  HashMap<String, BeatStarSong> songs;
+  HashMap<CString, BeatStarSong> songs;
 };
 
 extern "C" {
 
+float rating(const BeatStarSong *self);
+
 BeatStarCharacteristics get_diff_type(const BeatStarSongDifficultyStats *self);
 
-Result<BeatStarDataFile, Response> beatstar_fetch_database();
+///
+/// Get the song list and clone it
+///
+const BeatStarDataFile *beatstar_retrieve_database_extern();
+
+///
+/// Get the song based on hash
+///
+///
+const BeatStarSong *beatstar_get_song_extern(const char *hash);
 
 } // extern "C"

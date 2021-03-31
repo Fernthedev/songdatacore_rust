@@ -1,0 +1,50 @@
+# The language to output bindings in
+#
+# possible values: "C", "C++", "Cython"
+#
+# default: "C++"
+language = "C++"
+
+# Whether to add a `#pragma once` guard
+# default: doesn't emit a `#pragma once`
+pragma_once = true
+
+# A list of substitutions for converting cfg's to ifdefs. cfgs which aren't
+# defined here will just be discarded.
+#
+# e.g.
+# `#[cfg(target = "freebsd")] ...`
+# becomes
+# `#if defined(DEFINE_FREEBSD) ... #endif`
+[defines]
+"feature = serde" = "DEFINE_SERDE"
+
+#[parse]
+## Whether to parse dependent crates and include their types in the output
+## default: false
+#parse_deps = true
+
+
+[struct]
+# generates operator==
+derive_eq = true
+# generates operator!=
+derive_neq = true
+
+
+[enum]
+# Generates IsFoo() methods.
+derive_helper_methods = true
+# Generates `const T& AsFoo() const` methods.
+derive_const_casts = true
+# Adds an `assert(IsFoo())` on each `AsFoo()` method.
+cast_assert_name = "assert"
+# Generates destructors.
+derive_tagged_enum_destructor = true
+# Generates copy-constructors.
+derive_tagged_enum_copy_constructor = true
+# Generates copy-assignment operators.
+derive_tagged_enum_copy_assignment = true
+# Generates a private default-constructor for enums that doesn't initialize
+# anything. Either you do this or you provide your own default constructor.
+private_default_tagged_enum_constructor = true
