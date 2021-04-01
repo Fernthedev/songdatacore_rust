@@ -1,4 +1,4 @@
-use crate::beatstar::data::BeatStarDataFile;
+use crate::beatstar::ffi::BeatStarDataFile;
 use once_cell::sync::OnceCell;
 
 mod data;
@@ -6,6 +6,7 @@ mod database;
 
 #[macro_use]
 mod macros;
+mod ffi;
 
 static BEAT_STAR_FILE: OnceCell<BeatStarDataFile> = OnceCell::new();
 

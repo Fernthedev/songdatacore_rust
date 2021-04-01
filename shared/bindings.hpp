@@ -119,6 +119,17 @@ struct BeatStarDataFile {
 
 extern "C" {
 
+///
+/// Get the song list and clone it
+///
+const BeatStarDataFile *beatstar_retrieve_database_extern();
+
+///
+/// Get the song based on hash
+///
+///
+const BeatStarSong *beatstar_get_song_extern(const char *hash);
+
 RustCStringWrapper c_new(char *c_str);
 
 float rating(const BeatStarSong *self);
@@ -135,17 +146,6 @@ const BeatStarSongDifficultyStats *get_characteristic_stats(const BeatStarSong *
                                                             char *beat_key2);
 
 BeatStarCharacteristics get_diff_type(const BeatStarSongDifficultyStats *self);
-
-///
-/// Get the song list and clone it
-///
-const BeatStarDataFile *beatstar_retrieve_database_extern();
-
-///
-/// Get the song based on hash
-///
-///
-const BeatStarSong *beatstar_get_song_extern(const char *hash);
 
 } // extern "C"
 

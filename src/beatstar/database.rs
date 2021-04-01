@@ -1,4 +1,5 @@
-use crate::beatstar::data::{BeatStarDataFile, BeatStarSong, BeatStarSongJson, RustCStringWrapper};
+use crate::beatstar::data::BeatStarSongJson;
+use crate::beatstar::ffi::{BeatStarDataFile, BeatStarSong, RustCStringWrapper};
 use crate::beatstar::BEAT_STAR_FILE;
 use std::collections::HashMap;
 use std::ffi::CStr;
