@@ -25,21 +25,6 @@ struct HashMap;
 template<typename T = void>
 struct Vec;
 
-template<typename T>
-struct VecStruct {
-  const T *array;
-  uintptr_t len;
-
-  bool operator==(const VecStruct& other) const {
-    return array == other.array &&
-           len == other.len;
-  }
-  bool operator!=(const VecStruct& other) const {
-    return array != other.array ||
-           len != other.len;
-  }
-};
-
 struct RustCStringWrapper {
   char *string_data;
 
@@ -134,11 +119,20 @@ struct BeatStarDataFile {
 
 extern "C" {
 
-const V *get_from_hashmap(const HashMap<K, V, S> *map, const K *key);
-
-VecStruct<T> get_from_vec(const Vec<T> *vec);
+RustCStringWrapper c_new(char *c_str);
 
 float rating(const BeatStarSong *self);
+
+uintptr_t get_characteristics_len(const BeatStarSong *self,
+                                  const BeatStarCharacteristics *beat_char);
+
+const char *get_characteristics_str(const BeatStarSong *self,
+                                    const BeatStarCharacteristics *beat_char,
+                                    uintptr_t index);
+
+const BeatStarSongDifficultyStats *get_characteristic_stats(const BeatStarSong *self,
+                                                            const BeatStarCharacteristics *beat_char,
+                                                            char *beat_key2);
 
 BeatStarCharacteristics get_diff_type(const BeatStarSongDifficultyStats *self);
 

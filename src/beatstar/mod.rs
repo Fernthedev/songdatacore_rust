@@ -1,34 +1,13 @@
 use crate::beatstar::data::BeatStarDataFile;
 use once_cell::sync::OnceCell;
-use std::collections::HashMap;
-use std::ptr;
-use std::hash::{Hash, BuildHasher};
 
 mod data;
 mod database;
 
+#[macro_use]
+mod macros;
+
 static BEAT_STAR_FILE: OnceCell<BeatStarDataFile> = OnceCell::new();
-
-#[no_mangle]
-pub extern fn get_from_hashmap<K: Eq + Hash, V: Hash, S: BuildHasher>(map: &HashMap<K, V, S>, key: &K) -> *const V {
-    return match map.get(key) {
-        None => ptr::null(),
-        Some(e) => {e}
-    }
-}
-
-#[repr(C)]
-pub struct VecStruct<T> {
-    array: *const T,
-    len: usize
-}
-
-#[no_mangle]
-pub extern fn get_from_vec<T>(vec: &Vec<T>) -> VecStruct<T> {
-    let slice = vec.as_slice();
-
-    VecStruct { array:slice.as_ptr(), len: slice.len()}
-}
 
 #[cfg(test)]
 mod tests {
@@ -46,7 +25,6 @@ mod tests {
         assert!(beatstar_update_database().is_none());
         assert!(stopwatch.elapsed().as_millis() < 1000);
         println!("Memory Cache works");
-
     }
 
     #[test]
@@ -58,8 +36,9 @@ mod tests {
 
         let diff = song
             .expect("Could not fetch song database")
-            .expect("Could not find song in database").diffs[0].clone();
+            .expect("Could not find song in database")
+            .diffs[0]
+            .clone();
         println!("Got the stars: {0} {1}", diff.diff.to_string(), diff.stars)
-
     }
 }

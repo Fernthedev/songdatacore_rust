@@ -1,14 +1,12 @@
-use crate::beatstar::data::{BeatStarDataFile, BeatStarSongJson, BeatStarSong, RustCStringWrapper};
+use crate::beatstar::data::{BeatStarDataFile, BeatStarSong, BeatStarSongJson, RustCStringWrapper};
 use crate::beatstar::BEAT_STAR_FILE;
 use std::collections::HashMap;
-use std::time::{Duration};
+use std::ffi::CStr;
+use std::os::raw::c_char;
+use std::ptr;
+use std::time::Duration;
 use stopwatch::Stopwatch;
 use ureq::{Agent, Response};
-use std::os::raw::c_char;
-use std::ffi::{CStr};
-use std::ptr;
-
-
 
 extern crate chrono;
 
@@ -33,24 +31,28 @@ pub fn beatstar_update_database() -> Option<Response> {
         println!("Fetching from internet");
         let mut stopwatch = Stopwatch::start_new();
         let response = AGENT.get(SCRAPED_SCORE_SABER_URL).call().unwrap();
-        println!("Received data from internet in {0}ms", stopwatch.elapsed().as_millis());
+        println!(
+            "Received data from internet in {0}ms",
+            stopwatch.elapsed().as_millis()
+        );
 
         if response.status() == HTTP_OK {
-
-
-
-
             let body: Vec<BeatStarSongJson> = response.into_json().unwrap();
-            println!("Parsed beat file into json data in {0}ms", stopwatch.elapsed().as_millis());
+            println!(
+                "Parsed beat file into json data in {0}ms",
+                stopwatch.elapsed().as_millis()
+            );
 
             let parsed_data = parse_beatstar(&body);
 
-            BEAT_STAR_FILE.get_or_init(|| {parsed_data});
+            BEAT_STAR_FILE.get_or_init(|| parsed_data);
 
-            println!("Fully parsed beat file in {0}ms", stopwatch.elapsed().as_millis());
+            println!(
+                "Fully parsed beat file in {0}ms",
+                stopwatch.elapsed().as_millis()
+            );
 
             stopwatch.stop();
-
         } else {
             return Some(response);
         }
@@ -63,10 +65,13 @@ pub fn beatstar_update_database() -> Option<Response> {
 /// Get the song list and clone it
 ///
 #[no_mangle]
-pub extern fn beatstar_retrieve_database_extern() -> *const BeatStarDataFile {
+pub extern "C" fn beatstar_retrieve_database_extern() -> *const BeatStarDataFile {
     match beatstar_retrieve_database() {
         Ok(e) => e,
-        Err(e) => panic!("Unable to fetch from database {0}", e.into_string().unwrap())
+        Err(e) => panic!(
+            "Unable to fetch from database {0}",
+            e.into_string().unwrap()
+        ),
     }
 }
 
@@ -74,8 +79,9 @@ pub extern fn beatstar_retrieve_database_extern() -> *const BeatStarDataFile {
 /// Get the song list and clone it
 ///
 pub fn beatstar_retrieve_database() -> Result<&'static BeatStarDataFile, Response> {
-
-    if let Some(e) = beatstar_update_database() { return Err(e) }
+    if let Some(e) = beatstar_update_database() {
+        return Err(e);
+    }
 
     let bsf_mutex = BEAT_STAR_FILE.get().unwrap();
 
@@ -87,8 +93,7 @@ pub fn beatstar_retrieve_database() -> Result<&'static BeatStarDataFile, Respons
 ///
 ///
 #[no_mangle]
-pub unsafe extern fn beatstar_get_song_extern(hash: *const c_char) -> *const BeatStarSong {
-
+pub unsafe extern "C" fn beatstar_get_song_extern(hash: *const c_char) -> *const BeatStarSong {
     if hash.is_null() {
         return ptr::null_mut();
     }
@@ -101,12 +106,14 @@ pub unsafe extern fn beatstar_get_song_extern(hash: *const c_char) -> *const Bea
     };
 
     match beatstar_get_song(hash_str) {
-        Ok(e) =>
-            match e {
+        Ok(e) => match e {
             None => ptr::null(),
-            Some(e) => e
+            Some(e) => e,
         },
-        Err(e) => panic!("Unable to fetch from database {0}", e.into_string().unwrap())
+        Err(e) => panic!(
+            "Unable to fetch from database {0}",
+            e.into_string().unwrap()
+        ),
     }
 }
 
@@ -115,11 +122,13 @@ pub unsafe extern fn beatstar_get_song_extern(hash: *const c_char) -> *const Bea
 ///
 pub fn beatstar_get_song(hash: &str) -> Result<Option<&BeatStarSong>, Response> {
     return match beatstar_update_database() {
-        None => {
-            Ok(BEAT_STAR_FILE.get().unwrap().songs.get(&RustCStringWrapper::new(hash.into())))
-        }
-        Some(e) => Err(e)
-    }
+        None => Ok(BEAT_STAR_FILE
+            .get()
+            .unwrap()
+            .songs
+            .get(&RustCStringWrapper::new(hash.into()))),
+        Some(e) => Err(e),
+    };
 }
 
 ///
@@ -141,7 +150,10 @@ fn parse_beatstar(songs: &[BeatStarSongJson]) -> BeatStarDataFile {
         for diff in &mut song.diffs {
             let diff_type = diff.get_diff_type();
 
-            let map = song.characteristics.entry(diff_type).or_insert_with(HashMap::new);
+            let map = song
+                .characteristics
+                .entry(diff_type)
+                .or_insert_with(HashMap::new);
 
             map.insert(diff.diff.clone(), diff.clone());
         }
