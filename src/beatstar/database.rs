@@ -101,7 +101,11 @@ pub unsafe extern fn beatstar_get_song_extern(hash: *const c_char) -> *const Bea
     };
 
     match beatstar_get_song(hash_str) {
-        Ok(e) => e,
+        Ok(e) =>
+            match e {
+            None => ptr::null(),
+            Some(e) => e
+        },
         Err(e) => panic!("Unable to fetch from database {0}", e.into_string().unwrap())
     }
 }
@@ -109,10 +113,10 @@ pub unsafe extern fn beatstar_get_song_extern(hash: *const c_char) -> *const Bea
 ///
 /// Gets a song based on it's hash
 ///
-pub fn beatstar_get_song(hash: &str) -> Result<&BeatStarSong, Response> {
+pub fn beatstar_get_song(hash: &str) -> Result<Option<&BeatStarSong>, Response> {
     return match beatstar_update_database() {
         None => {
-            Ok(BEAT_STAR_FILE.get().unwrap().songs.get(&RustCStringWrapper::new(hash)).unwrap())
+            Ok(BEAT_STAR_FILE.get().unwrap().songs.get(&RustCStringWrapper::new(hash.into())))
         }
         Some(e) => Err(e)
     }
