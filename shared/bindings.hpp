@@ -41,16 +41,13 @@ struct VecStruct {
 };
 
 struct RustCStringWrapper {
-  CString cstring;
-  const char *string_data;
+  char *string_data;
 
   bool operator==(const RustCStringWrapper& other) const {
-    return cstring == other.cstring &&
-           string_data == other.string_data;
+    return string_data == other.string_data;
   }
   bool operator!=(const RustCStringWrapper& other) const {
-    return cstring != other.cstring ||
-           string_data != other.string_data;
+    return string_data != other.string_data;
   }
 };
 

@@ -56,7 +56,9 @@ mod tests {
 
         let song = beatstar_get_song("4B2DA842B687EC4CFBC948C583C21C79D4120DE0");
 
-        let diff = song.expect("Could not find song for test").diffs[0].clone();
+        let diff = song
+            .expect("Could not fetch song database")
+            .expect("Could not find song in database").diffs[0].clone();
         println!("Got the stars: {0} {1}", diff.diff.to_string(), diff.stars)
 
     }

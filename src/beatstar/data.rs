@@ -6,22 +6,48 @@ use std::str::FromStr;
 use std::ffi::{CString, CStr};
 use std::borrow::Borrow;
 use std::os::raw::c_char;
+use std::hash::{Hash, Hasher};
+use std::cmp::Ordering;
 
-
-#[derive(Clone, Eq, PartialEq, Hash, Ord, PartialOrd)]
+// #[derive(Derivative)]
+#[derive(Eq)]
 #[repr(C)]
 pub struct RustCStringWrapper {
-    pub cstring: CString,
-    pub string_data: *const c_char
+    // #[derivative(PartialOrd="ignore")]
+    // #[derivative(PartialEq="ignore")]
+    // #[derivative(Hash="ignore")]
+    pub string_data: *mut c_char
 }
 
-unsafe impl Send for RustCStringWrapper {
-
+impl Clone for RustCStringWrapper {
+    fn clone(&self) -> Self {
+        unsafe {
+            return RustCStringWrapper::new(self.to_string().into());
+        }
+    }
 }
 
-unsafe impl Sync for RustCStringWrapper {
-
+impl PartialEq for RustCStringWrapper {
+    fn eq(&self, other: &Self) -> bool {
+        return self.to_string() == other.to_string()
+    }
 }
+
+impl PartialOrd for RustCStringWrapper {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        return self.to_string().partial_cmp(&other.to_string())
+    }
+}
+
+impl Hash for RustCStringWrapper {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.to_string().hash(state)
+    }
+}
+
+
+unsafe impl Send for RustCStringWrapper {}
+unsafe impl Sync for RustCStringWrapper {}
 
 impl ToString for RustCStringWrapper {
     fn to_string(&self) -> String {
@@ -40,12 +66,20 @@ impl ToString for RustCStringWrapper {
     }
 }
 
+impl Drop for RustCStringWrapper {
+    fn drop(&mut self) {
+        if self.string_data.is_null() {
+            return;
+        }
+        unsafe { CString::from_raw(self.string_data); }
+    }
+}
+
 impl RustCStringWrapper {
-    pub fn new<T: Into<Vec<u8>>>(str_data: T) -> RustCStringWrapper {
+    pub fn new(str_data: Vec<u8>) -> RustCStringWrapper {
         let c_string  = CString::new(str_data).expect("RustCStringWrapper::new failed");
-        let ptr = c_string.as_ptr();
+        let ptr = c_string.into_raw();
         RustCStringWrapper {
-            cstring: c_string,
             string_data: ptr
         }
     }
@@ -143,7 +177,7 @@ impl BeatStarSong {
             for (str, diff_json) in char_map {
 
 
-                char_map_convert.insert(RustCStringWrapper::new(str.clone()), BeatStarSongDifficultyStats::convert(&diff_json));
+                char_map_convert.insert(RustCStringWrapper::new(str.clone().into()), BeatStarSongDifficultyStats::convert(&diff_json));
             }
 
             characteristics_convert.insert(*char_star, char_map_convert);
@@ -155,10 +189,10 @@ impl BeatStarSong {
             played_count: og.played_count,
             upvotes: og.upvotes,
             downvotes: og.downvotes,
-            key: RustCStringWrapper::new(og.key.clone()),
+            key: RustCStringWrapper::new(og.key.clone().into()),
             diffs: diff_convert,
-            uploaded: RustCStringWrapper::new(og.uploaded.clone()),
-            hash: RustCStringWrapper::new(og.hash.clone()),
+            uploaded: RustCStringWrapper::new(og.uploaded.clone().into()),
+            hash: RustCStringWrapper::new(og.hash.clone().into()),
             characteristics: characteristics_convert
         }
     }
@@ -213,7 +247,7 @@ impl BeatStarSongDifficultyStats {
 
     pub fn convert(og: &BeatStarSongDifficultyStatsJson) -> BeatStarSongDifficultyStats {
         BeatStarSongDifficultyStats {
-            diff: RustCStringWrapper::new(og.diff.clone()),
+            diff: RustCStringWrapper::new(og.diff.clone().into()),
             scores: og.scores,
             stars: og.stars,
             ranked: og.ranked,
@@ -221,7 +255,7 @@ impl BeatStarSongDifficultyStats {
             bombs: og.bombs,
             notes: og.notes,
             obstacles: og.obstacles,
-            char: RustCStringWrapper::new(og.char.clone())
+            char: RustCStringWrapper::new(og.char.clone().into())
         }
     }
 }
