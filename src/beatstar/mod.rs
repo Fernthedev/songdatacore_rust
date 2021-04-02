@@ -1,6 +1,7 @@
 use crate::beatstar::ffi::BeatStarDataFile;
 use once_cell::sync::OnceCell;
 
+
 mod data;
 mod database;
 
@@ -35,11 +36,13 @@ mod tests {
 
         let song = beatstar_get_song("4B2DA842B687EC4CFBC948C583C21C79D4120DE0");
 
-        let diff = song
-            .expect("Could not fetch song database")
-            .expect("Could not find song in database")
-            .diffs[0]
-            .clone();
-        println!("Got the stars: {0} {1}", diff.diff.to_string(), diff.stars)
+        unsafe {
+            let diff = (*song
+                .expect("Could not fetch song database")
+                .expect("Could not find song in database")
+                .diffs)[0]
+                .clone();
+            println!("Got the stars: {0} {1}", diff.diff.to_string(), diff.stars)
+        }
     }
 }

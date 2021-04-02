@@ -77,10 +77,10 @@ struct BeatStarSong {
   uint32_t upvotes;
   uint32_t downvotes;
   RustCStringWrapper key;
-  Vec<BeatStarSongDifficultyStats> diffs;
+  const Vec<BeatStarSongDifficultyStats> *diffs;
   RustCStringWrapper uploaded;
   RustCStringWrapper hash;
-  HashMap<BeatStarCharacteristics, HashMap<RustCStringWrapper, BeatStarSongDifficultyStats>> characteristics;
+  const HashMap<BeatStarCharacteristics, HashMap<RustCStringWrapper, BeatStarSongDifficultyStats>> *characteristics;
 
   bool operator==(const BeatStarSong& other) const {
     return bpm == other.bpm &&
@@ -107,7 +107,7 @@ struct BeatStarSong {
 };
 
 struct BeatStarDataFile {
-  HashMap<RustCStringWrapper, BeatStarSong> songs;
+  const HashMap<RustCStringWrapper, BeatStarSong> *songs;
 
   bool operator==(const BeatStarDataFile& other) const {
     return songs == other.songs;
@@ -130,7 +130,7 @@ const BeatStarDataFile *beatstar_retrieve_database_extern();
 ///
 const BeatStarSong *beatstar_get_song_extern(const char *hash);
 
-RustCStringWrapper c_new(char *c_str);
+RustCStringWrapper rust_cstring_wrapper_c_new(char *c_str);
 
 float rating(const BeatStarSong *self);
 

@@ -122,14 +122,16 @@ pub unsafe extern "C" fn beatstar_get_song_extern(hash: *const c_char) -> *const
 /// Gets a song based on it's hash
 ///
 pub fn beatstar_get_song(hash: &str) -> Result<Option<&BeatStarSong>, Response> {
-    return match beatstar_update_database() {
-        None => Ok(BEAT_STAR_FILE
-            .get()
-            .unwrap()
-            .songs
-            .get(&RustCStringWrapper::new(hash.into()))),
-        Some(e) => Err(e),
-    };
+    unsafe {
+        return match beatstar_update_database() {
+            None => Ok((*BEAT_STAR_FILE
+                .get()
+                .unwrap()
+                .songs)
+                .get(&RustCStringWrapper::new(hash.into()))),
+            Some(e) => Err(e),
+        };
+    }
 }
 
 ///
@@ -145,22 +147,9 @@ fn parse_beatstar(songs: &[BeatStarSongJson]) -> BeatStarDataFile {
 
     let mut song_map: HashMap<RustCStringWrapper, BeatStarSong> = HashMap::new();
 
-    for mut song in song_converted {
-        song.characteristics = HashMap::new();
-
-        for diff in &mut song.diffs {
-            let diff_type = diff.get_diff_type();
-
-            let map = song
-                .characteristics
-                .entry(diff_type)
-                .or_insert_with(HashMap::new);
-
-            map.insert(diff.diff.clone(), diff.clone());
-        }
-
+    for song in song_converted {
         song_map.insert(song.hash.clone(), song);
     }
 
-    BeatStarDataFile { songs: song_map }
+    BeatStarDataFile { songs: Box::into_raw(Box::new(song_map)) }
 }
