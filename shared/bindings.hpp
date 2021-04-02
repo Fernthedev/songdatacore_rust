@@ -132,7 +132,26 @@ const BeatStarSong *beatstar_get_song_extern(const char *hash);
 
 RustCStringWrapper rust_cstring_wrapper_c_new(char *c_str);
 
+const BeatStarSong *extern_map_songs_get(const BeatStarDataFile *self,
+                                         const RustCStringWrapper *index);
+
+const RustCStringWrapper *extern_map_songs_get_key(const BeatStarDataFile *self, uintptr_t index);
+
+uintptr_t extern_map_songs_len(const BeatStarDataFile *self);
+
 float rating(const BeatStarSong *self);
+
+const BeatStarSongDifficultyStats *extern_vec_diffs_get(const BeatStarSong *self, uintptr_t index);
+
+uintptr_t extern_vec_diffs_len(const BeatStarSong *self);
+
+const HashMap<RustCStringWrapper, BeatStarSongDifficultyStats> *extern_map_songs_get(const BeatStarSong *self,
+                                                                                     const BeatStarCharacteristics *index);
+
+const BeatStarCharacteristics *extern_map_characteristics_key_get(const BeatStarSong *self,
+                                                                  uintptr_t index);
+
+uintptr_t extern_map_songs_len(const BeatStarSong *self);
 
 uintptr_t get_characteristics_len(const BeatStarSong *self,
                                   const BeatStarCharacteristics *beat_char);
