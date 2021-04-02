@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::result;
+use std::str::FromStr;
 
 #[serde(rename_all = "PascalCase", rename = "with typo")]
 #[derive(Serialize, Deserialize, Clone)]
@@ -69,4 +71,23 @@ pub enum BeatStarCharacteristics {
     Degree90,
     Degree360,
     Lawless,
+}
+
+
+impl FromStr for BeatStarCharacteristics {
+    type Err = ();
+
+    fn from_str(input: &str) -> result::Result<BeatStarCharacteristics, Self::Err> {
+        match input.to_lowercase().as_str() {
+            "unknown" => Ok(BeatStarCharacteristics::Unknown),
+            "standard" => Ok(BeatStarCharacteristics::Standard),
+            "onesaber" => Ok(BeatStarCharacteristics::OneSaber),
+            "noarrows" => Ok(BeatStarCharacteristics::NoArrows),
+            "lightshow" => Ok(BeatStarCharacteristics::Lightshow),
+            "degree90" => Ok(BeatStarCharacteristics::Degree90),
+            "degree360" => Ok(BeatStarCharacteristics::Degree360),
+            "lawless" => Ok(BeatStarCharacteristics::Lawless),
+            _ => Err(()),
+        }
+    }
 }
