@@ -56,13 +56,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - uses: actions/cache@v2
-      with:
-        path: |
-          ~/.cargo/registry
-          ~/.cargo/git
-          target
-        key: ${{ matrix.targetOS }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
     
     - uses: actions-rs/toolchain@v1
       with:
@@ -80,6 +74,17 @@ jobs:
         rustup default nightly
         cargo +nightly install cargo-ndk
         rustup target add aarch64-linux-android
+    - name: Create Cargo LockFile
+      run: cargo +nightly update
+
+    - uses: actions/cache@v2
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ matrix.targetOS }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
     - name: Build
       run: cargo +nightly ${{matrix.cargo-arg}} build --verbose --release
     - name: Rename and move files

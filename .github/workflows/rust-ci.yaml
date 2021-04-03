@@ -18,6 +18,13 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
+    - uses: actions-rs/toolchain@v1
+      with:
+        toolchain: nightly
+
+    - name: Create Cargo LockFile
+      run: cargo +nightly update
+
     - uses: actions/cache@v2
       with:
         path: |
@@ -25,11 +32,7 @@ jobs:
           ~/.cargo/git
           target
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-    
-    - uses: actions-rs/toolchain@v1
-      with:
-        toolchain: nightly
-    
+
     - name: Build
       run: cargo +nightly build --verbose --release
     - name: Run tests
