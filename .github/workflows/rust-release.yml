@@ -121,6 +121,11 @@ jobs:
         path: QPM
         repo: sc2ad/QuestPackageManager
 
+    - id: release_data
+      uses: pozetroninc/github-action-get-latest-release@master
+      with:
+        repository: ${{ github.repository }}
+
     - name: Get Tag Version
       if: contains(matrix.cargo-arg, 'ndk')
       id: get_tag_version
@@ -134,7 +139,7 @@ jobs:
       run: |
         chmod +x ./QPM/QPM
         ./QPM/QPM restore
-        ./QPM/QPM package edit version "${{ steps.get_tag_version.outputs.VERSION }}"
+        ./QPM/QPM package edit version "${{ steps.release_data.outputs.release }}"
 
         ./QPM/QPM package edit-extra "branchName" "version-${{ steps.get_tag_version.outputs.TAG }}"
         ./QPM/QPM package edit-extra "soLink" "${{ steps.upload_file_release.url }}"
