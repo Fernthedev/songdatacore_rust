@@ -62,7 +62,7 @@ jobs:
           ~/.cargo/registry
           ~/.cargo/git
           target
-        key: ${{ runner.targetOS }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+        key: ${{ matrix.targetOS }}-cargo-${{ hashFiles('**/Cargo.lock') }}
     
     - uses: actions-rs/toolchain@v1
       with:
