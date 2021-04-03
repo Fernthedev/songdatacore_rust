@@ -66,9 +66,9 @@ jobs:
         cargo +nightly install cargo-ndk
         rustup target add aarch64-linux-android
     - name: Build
-      run: cargo +nightly ${{cargo-arg}} build --verbose --release
+      run: cargo +nightly ${{matrix.cargo-arg}} build --verbose --release
     - name: Run tests
-      run: cargo +nightly ${{cargo-arg}} test --verbose
+      run: cargo +nightly ${{matrix.cargo-arg}} test --verbose
     - name: Rename files
       run: |
         mv ./target/release/${{ matrix.file-name }} ./${{ matrix.os }}-${{ matrix.file-name }}
