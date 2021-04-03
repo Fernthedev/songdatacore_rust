@@ -73,14 +73,15 @@ jobs:
         rustup target add aarch64-linux-android
     - name: Build
       run: cargo +nightly ${{matrix.cargo-arg}} build --verbose --release
-    - name: Run tests
-      run: cargo +nightly ${{matrix.cargo-arg}} test --verbose
-    - name: Rename files
+    - name: Rename and move files
       run: |
-        mv ./target/release/${{ matrix.file-name }} ./${{ matrix.targetOS }}-${{ matrix.file-name }}
+        echo 
+        ls ./target/release/
+        mv "./target/release/${{ matrix.file-name }}" "./${{ matrix.targetOS }}-${{ matrix.file-name }}"
         # Move only if exists
         [ -f ./target/release/${{ matrix.lib-name }} ] && mv ./target/release/${{ matrix.lib-name }} ./${{ matrix.targetOS }}-${{ matrix.lib-name }}
-      
+    - name: Run tests
+      run: cargo +nightly ${{matrix.cargo-arg}} test --verbose
       
     - name: Upload to GitHub release
       uses: Roang-zero1/github-upload-release-artifacts-action@master
