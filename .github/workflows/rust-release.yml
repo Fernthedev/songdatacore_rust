@@ -1,0 +1,78 @@
+name: Rust Release
+
+on:
+#   push:
+#     branches: [ master ]
+#   pull_request:
+#     branches: [ master ]
+  release:
+
+env:
+  CARGO_TERM_COLOR: always
+  
+
+
+jobs:
+
+  build:
+
+    runs-on: ${{ matrix.os }}
+    
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macOS-latest, aarch64-linux-android]
+        include:
+          - os: ubuntu-latest
+            cargo-arg: ""
+            file-name: "libsong_data_core_rust.so"
+            lib-name: "libsong_data_core_rust.so"
+          - os: macOS-latest
+            cargo-arg: ""
+            file-name: "libsong_data_core_rust.so"
+            lib-name: "libsong_data_core_rust.so"
+          - os: windows-latest
+            cargo-arg: ""
+            file-name: "song_data_core_rust.dll"
+            lib-name: "song_data_core_rust.dll.lib"
+          - os:  aarch64-linux-android
+            cargo-arg: "ndk"
+            file-name: "libsong_data_core_rust.so"
+            lib-name: "libsong_data_core_rust.so"
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - uses: actions/cache@v2
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+    
+    - uses: actions-rs/toolchain@v1
+      with:
+        toolchain: nightly
+    
+    - name: Setup NDK
+      if: matrix.cargo-arg == "ndk"
+      id: setup-ndk
+      uses: nttld/setup-ndk@v1.0.3
+      with:
+        ndk-version: r22
+    - name: Download Cargo NDK
+      run: |
+        cargo install cargo-ndk
+        rustup target add aarch64-linux-android
+    - name: Build
+      run: cargo ${{cargo-arg}} build --verbose --release
+    - name: Run tests
+      run: cargo ${{cargo-arg}} test --verbose
+    - name: Upload artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: ${{ matrix.os }}-${{ steps.libname.outputs.NAME }}
+        path: |
+          ./target/release/${{ matrix.file-name }}
+          ./target/release/${{ matrix.lib-name }}
+        if-no-files-found: error
