@@ -145,7 +145,7 @@ impl BeatStarSong {
         extern_vec_diffs_get,
         extern_vec_diffs_len
     );
-    map_extern!(characteristics, BeatStarCharacteristics, HashMap<RustCStringWrapper, BeatStarSongDifficultyStats>, extern_map_songs_get, extern_map_songs_len, extern_map_characteristics_key_get);
+    map_extern!(characteristics, BeatStarCharacteristics, HashMap<RustCStringWrapper, BeatStarSongDifficultyStats>, extern_map_characteristics_get, extern_map_characteristics_len, extern_map_characteristics_key_get);
 
     #[no_mangle]
     pub extern "C" fn get_characteristics_len(&self, beat_char: &BeatStarCharacteristics) -> usize {

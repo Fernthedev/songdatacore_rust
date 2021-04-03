@@ -145,13 +145,13 @@ const BeatStarSongDifficultyStats *extern_vec_diffs_get(const BeatStarSong *self
 
 uintptr_t extern_vec_diffs_len(const BeatStarSong *self);
 
-const HashMap<RustCStringWrapper, BeatStarSongDifficultyStats> *extern_map_songs_get(const BeatStarSong *self,
-                                                                                     const BeatStarCharacteristics *index);
+const HashMap<RustCStringWrapper, BeatStarSongDifficultyStats> *extern_map_characteristics_get(const BeatStarSong *self,
+                                                                                               const BeatStarCharacteristics *index);
 
 const BeatStarCharacteristics *extern_map_characteristics_key_get(const BeatStarSong *self,
                                                                   uintptr_t index);
 
-uintptr_t extern_map_songs_len(const BeatStarSong *self);
+uintptr_t extern_map_characteristics_len(const BeatStarSong *self);
 
 uintptr_t get_characteristics_len(const BeatStarSong *self,
                                   const BeatStarCharacteristics *beat_char);
