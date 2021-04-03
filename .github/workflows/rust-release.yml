@@ -98,7 +98,7 @@ jobs:
       shell: bash  
     - name: Run tests
       if: ${{ !contains(matrix.cargo-arg, 'ndk') }}
-      run: cargo +nightly test --verbose
+      run: cargo +nightly test --verbose --release
       
     - name: Upload to Release
       id: upload_file_release
