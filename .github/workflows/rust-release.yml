@@ -132,6 +132,7 @@ jobs:
     - name: QPMify for NDK
       if: contains(matrix.cargo-arg, 'ndk')
       run: |
+        chmod +x ./QPM/QPM
         ./QPM/QPM restore
         ./QPM/QPM package edit version "${{ steps.get_tag_version.outputs.VERSION }}"
 
