@@ -55,7 +55,7 @@ jobs:
         toolchain: nightly
     
     - name: Setup NDK
-      if: matrix.cargo-arg == "ndk"
+      if: matrix.cargo-arg == 'ndk'
       id: setup-ndk
       uses: nttld/setup-ndk@v1.0.3
       with:
