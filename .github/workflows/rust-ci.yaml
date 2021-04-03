@@ -42,5 +42,5 @@ jobs:
       with:
         name: ${{ runner.os }}-libsong_data_core_rust.so
         path: |
-          ./target/release/libsong_data_core_rust.so
+          ./target/debug/libsong_data_core_rust.so
         if-no-files-found: error
