@@ -20,21 +20,25 @@ jobs:
     
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macOS-latest, aarch64-linux-android]
+        targetOS: [ubuntu-latest, windows-latest, macOS-latest, aarch64-linux-android]
         include:
-          - os: ubuntu-latest
+          - targetOS: ubuntu-latest
+            os: ${{ matrix.targetOS }}
             cargo-arg: ""
             file-name: "libsong_data_core_rust.so"
             lib-name: "libsong_data_core_rust.so"
-          - os: macOS-latest
+          - targetOS: macOS-latest
+            os: ${{ matrix.targetOS }}
             cargo-arg: ""
             file-name: "libsong_data_core_rust.so"
             lib-name: "libsong_data_core_rust.so"
-          - os: windows-latest
+          - targetOS: windows-latest
+            os: ${{ matrix.targetOS }}
             cargo-arg: ""
             file-name: "song_data_core_rust.dll"
             lib-name: "song_data_core_rust.dll.lib"
-          - os:  aarch64-linux-android
+          - targetOS:  aarch64-linux-android
+            os: ubuntu-latest
             cargo-arg: "ndk"
             file-name: "libsong_data_core_rust.so"
             lib-name: "libsong_data_core_rust.so"
@@ -48,7 +52,7 @@ jobs:
           ~/.cargo/registry
           ~/.cargo/git
           target
-        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+        key: ${{ runner.targetOS }}-cargo-${{ hashFiles('**/Cargo.lock') }}
     
     - uses: actions-rs/toolchain@v1
       with:
@@ -71,17 +75,17 @@ jobs:
       run: cargo +nightly ${{matrix.cargo-arg}} test --verbose
     - name: Rename files
       run: |
-        mv ./target/release/${{ matrix.file-name }} ./${{ matrix.os }}-${{ matrix.file-name }}
+        mv ./target/release/${{ matrix.file-name }} ./${{ matrix.targetOS }}-${{ matrix.file-name }}
         # Move only if exists
-        [ -f ./target/release/${{ matrix.lib-name }} ] && mv ./target/release/${{ matrix.lib-name }} ./${{ matrix.os }}-${{ matrix.lib-name }}
+        [ -f ./target/release/${{ matrix.lib-name }} ] && mv ./target/release/${{ matrix.lib-name }} ./${{ matrix.targetOS }}-${{ matrix.lib-name }}
       
       
     - name: Upload to GitHub release
       uses: Roang-zero1/github-upload-release-artifacts-action@master
       with:
         args: |
-          ./${{ matrix.os }}-${{ matrix.file-name }}
-          ./${{ matrix.os }}-${{ matrix.lib-name }}
+          ./${{ matrix.targetOS }}-${{ matrix.file-name }}
+          ./${{ matrix.targetOS }}-${{ matrix.lib-name }}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
