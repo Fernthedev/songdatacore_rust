@@ -77,11 +77,11 @@ jobs:
       run: cargo +nightly ${{matrix.cargo-arg}} build --verbose --release
     - name: Rename and move files
       run: |
-        echo 
         ls ./target/release/
         mv "./target/release/${{ matrix.file-name }}" "./${{ matrix.targetOS }}-${{ matrix.file-name }}"
         # Move only if exists
-        [ -f ./target/release/${{ matrix.lib-name }} ] && mv ./target/release/${{ matrix.lib-name }} ./${{ matrix.targetOS }}-${{ matrix.lib-name }}
+        [ -f ./target/release/${{ matrix.lib-name }} ] && mv ./target/release/${{ matrix.lib-name }} ./${{ matrix.targetOS }}-${{ matrix.lib-name }} || true
+        echo Done
     - name: Run tests
       run: cargo +nightly ${{matrix.cargo-arg}} test --verbose
       
