@@ -39,7 +39,7 @@ jobs:
             lib-name: "song_data_core_rust.dll.lib"
           - targetOS:  aarch64-linux-android
             os: ubuntu-latest
-            cargo-arg: "ndk"
+            cargo-arg: "ndk -t arm64-v8a"
             file-name: "libsong_data_core_rust.so"
             lib-name: "libsong_data_core_rust.so"
 
@@ -59,13 +59,13 @@ jobs:
         toolchain: nightly
     
     - name: Setup NDK
-      if: matrix.cargo-arg == 'ndk'
+      if: contains(matrix.cargo-arg, 'ndk')
       id: setup-ndk
       uses: nttld/setup-ndk@v1.0.3
       with:
         ndk-version: r22
     - name: Download Cargo NDK
-      if: matrix.cargo-arg == 'ndk'
+      if: contains(matrix.cargo-arg, 'ndk')
       run: |
         rustup default nightly
         cargo +nightly install cargo-ndk
