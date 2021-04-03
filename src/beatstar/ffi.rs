@@ -85,13 +85,13 @@ impl RustCStringWrapper {
         let ptr = c_string.into_raw();
         RustCStringWrapper { string_data: ptr }
     }
+}
 
-    #[no_mangle]
-    pub extern "C" fn rust_cstring_wrapper_c_new(c_str: *mut c_char) -> RustCStringWrapper {
-        unsafe {
-            RustCStringWrapper {
-                string_data: CString::from_raw(c_str).into_raw(),
-            }
+#[no_mangle]
+pub extern "C" fn rust_cstring_wrapper_c_new(c_str: *mut c_char) -> RustCStringWrapper {
+    unsafe {
+        RustCStringWrapper {
+            string_data: CString::from_raw(c_str).into_raw(),
         }
     }
 }
@@ -104,8 +104,8 @@ pub struct BeatStarDataFile {
 unsafe impl Send for BeatStarDataFile {}
 unsafe impl Sync for BeatStarDataFile {}
 
-impl BeatStarDataFile {
-    map_extern!(
+map_extern!(
+        BeatStarDataFile,
         songs,
         RustCStringWrapper,
         BeatStarSong,
@@ -113,7 +113,6 @@ impl BeatStarDataFile {
         extern_map_songs_len,
         extern_map_songs_get_key
     );
-}
 
 #[repr(C)]
 pub struct BeatStarSong {
@@ -130,72 +129,6 @@ pub struct BeatStarSong {
 }
 
 impl BeatStarSong {
-    #[no_mangle]
-    pub extern "C" fn rating(&self) -> f32 {
-        let tot: f32 = (self.upvotes + self.downvotes) as f32;
-        let tmp: f32 = (self.upvotes) as f32 / tot;
-
-        tmp - (tmp - 0.5) * (2_i32.pow(-(tot + 1f32).log10() as u32) as f32)
-    }
-
-
-    vec_extern!(
-        diffs,
-        BeatStarSongDifficultyStats,
-        extern_vec_diffs_get,
-        extern_vec_diffs_len
-    );
-    map_extern!(characteristics, BeatStarCharacteristics, HashMap<RustCStringWrapper, BeatStarSongDifficultyStats>, extern_map_characteristics_get, extern_map_characteristics_len, extern_map_characteristics_key_get);
-
-    #[no_mangle]
-    pub extern "C" fn get_characteristics_len(&self, beat_char: &BeatStarCharacteristics) -> usize {
-        unsafe {
-            return match (*self.characteristics).get(beat_char) {
-                None => 0,
-                Some(e) => e.len(),
-            };
-        }
-    }
-
-    #[no_mangle]
-    pub extern "C" fn get_characteristics_str(
-        &self,
-        beat_char: &BeatStarCharacteristics,
-        index: usize,
-    ) -> *const c_char {
-        unsafe {
-            return match (*self.characteristics).get(beat_char) {
-                None => ptr::null(),
-                Some(e) => {
-                    let keys: Vec<&RustCStringWrapper> = e.keys().collect();
-
-                    match keys.get(index) {
-                        None => ptr::null(),
-                        Some(s) => {
-                            return s.string_data;
-                        }
-                    }
-                }
-            };
-        }
-    }
-
-    #[no_mangle]
-    pub extern "C" fn get_characteristic_stats(
-        &self,
-        beat_char: &BeatStarCharacteristics,
-        beat_key2: *mut c_char,
-    ) -> *const BeatStarSongDifficultyStats {
-        unsafe {
-            return match (*self.characteristics).get(beat_char) {
-                Some(map) => match map.get(&RustCStringWrapper::rust_cstring_wrapper_c_new(beat_key2)) {
-                    None => ptr::null(),
-                    Some(e) => e,
-                },
-                None => ptr::null(),
-            };
-        }
-    }
 
     pub fn convert(og: &BeatStarSongJson) -> BeatStarSong {
         let mut diff_convert: Vec<BeatStarSongDifficultyStats> = vec![];
@@ -234,6 +167,74 @@ impl BeatStarSong {
             hash: RustCStringWrapper::new(og.hash.clone().into()),
             characteristics: Box::into_raw(Box::new(characteristics_convert)),
         }
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn rating(selfI: &BeatStarSong) -> f32 {
+    let tot: f32 = (selfI.upvotes + selfI.downvotes) as f32;
+    let tmp: f32 = (selfI.upvotes) as f32 / tot;
+
+    tmp - (tmp - 0.5) * (2_i32.pow(-(tot + 1f32).log10() as u32) as f32)
+}
+
+vec_extern!(
+        BeatStarSong,
+        diffs,
+        BeatStarSongDifficultyStats,
+        extern_vec_diffs_get,
+        extern_vec_diffs_len
+    );
+map_extern!(BeatStarSong, characteristics, BeatStarCharacteristics, HashMap<RustCStringWrapper, BeatStarSongDifficultyStats>, extern_map_characteristics_get, extern_map_characteristics_len, extern_map_characteristics_key_get);
+
+
+#[no_mangle]
+pub extern "C" fn get_characteristics_len(selfI: &BeatStarSong, beat_char: &BeatStarCharacteristics) -> usize {
+    unsafe {
+        return match (*selfI.characteristics).get(beat_char) {
+            None => 0,
+            Some(e) => e.len(),
+        };
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn get_characteristic_stats(
+    selfI: &BeatStarSong,
+    beat_char: &BeatStarCharacteristics,
+    beat_key2: *mut c_char,
+) -> *const BeatStarSongDifficultyStats {
+    unsafe {
+        return match (*selfI.characteristics).get(beat_char) {
+            Some(map) => match map.get(&rust_cstring_wrapper_c_new(beat_key2)) {
+                None => ptr::null(),
+                Some(e) => e,
+            },
+            None => ptr::null(),
+        };
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn get_characteristics_str(
+    selfI: &BeatStarSong,
+    beat_char: &BeatStarCharacteristics,
+    index: usize,
+) -> *const c_char {
+    unsafe {
+        return match (*selfI.characteristics).get(beat_char) {
+            None => ptr::null(),
+            Some(e) => {
+                let keys: Vec<&RustCStringWrapper> = e.keys().collect();
+
+                match keys.get(index) {
+                    None => ptr::null(),
+                    Some(s) => {
+                        return s.string_data;
+                    }
+                }
+            }
+        };
     }
 }
 
