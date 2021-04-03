@@ -82,6 +82,7 @@ jobs:
         # Move only if exists
         [ -f ./target/release/${{ matrix.lib-name }} ] && mv ./target/release/${{ matrix.lib-name }} ./${{ matrix.targetOS }}-${{ matrix.lib-name }} || true
         echo Done
+      shell: bash  
     - name: Run tests
       run: cargo +nightly ${{matrix.cargo-arg}} test --verbose
       
