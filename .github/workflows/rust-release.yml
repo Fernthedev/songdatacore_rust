@@ -30,21 +30,28 @@ jobs:
             cargo-arg: ""
             file-name: "libsong_data_core_rust.so"
             lib-name: "libsong_data_core_rust.so"
+            build-folder: "./target/release/"
+            
           - targetOS: macOS-latest
             os: macOS-latest
             cargo-arg: ""
             file-name: "libsong_data_core_rust.dylib"
             lib-name: "libsong_data_core_rust.dylib"
+            build-folder: "./target/release/"
+            
           - targetOS: windows-latest
             os: windows-latest
             cargo-arg: ""
             file-name: "song_data_core_rust.dll"
             lib-name: "song_data_core_rust.dll.lib"
+            build-folder: "./target/release/"
+            
           - targetOS:  aarch64-linux-android
             os: ubuntu-latest
-            cargo-arg: "ndk -t arm64-v8a"
+            cargo-arg: "ndk -t arm64-v8a -o target/release"
             file-name: "libsong_data_core_rust.so"
             lib-name: "libsong_data_core_rust.so"
+            build-folder: "./target/release/arm64-v8a"
 
     steps:
     - uses: actions/checkout@v2
@@ -78,9 +85,10 @@ jobs:
     - name: Rename and move files
       run: |
         ls ./target/release/
-        mv "./target/release/${{ matrix.file-name }}" "./${{ matrix.targetOS }}-${{ matrix.file-name }}"
+        ls ${{ matrix.build-folder }}
+        mv "${{ matrix.build-folder }}/${{ matrix.file-name }}" "./${{ matrix.targetOS }}-${{ matrix.file-name }}"
         # Move only if exists
-        [ -f ./target/release/${{ matrix.lib-name }} ] && mv ./target/release/${{ matrix.lib-name }} ./${{ matrix.targetOS }}-${{ matrix.lib-name }} || true
+        [ -f ${{ matrix.build-folder }}/${{ matrix.lib-name }} ] && mv ${{ matrix.build-folder }}/${{ matrix.lib-name }} ./${{ matrix.targetOS }}-${{ matrix.lib-name }} || true
         echo Done
       shell: bash  
     - name: Run tests
