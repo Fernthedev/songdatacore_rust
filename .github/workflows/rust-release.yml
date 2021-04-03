@@ -23,17 +23,17 @@ jobs:
         targetOS: [ubuntu-latest, windows-latest, macOS-latest, aarch64-linux-android]
         include:
           - targetOS: ubuntu-latest
-            os: ${{ matrix.targetOS }}
+            os: ubuntu-latest
             cargo-arg: ""
             file-name: "libsong_data_core_rust.so"
             lib-name: "libsong_data_core_rust.so"
           - targetOS: macOS-latest
-            os: ${{ matrix.targetOS }}
+            os: macOS-latest
             cargo-arg: ""
             file-name: "libsong_data_core_rust.so"
             lib-name: "libsong_data_core_rust.so"
           - targetOS: windows-latest
-            os: ${{ matrix.targetOS }}
+            os: windows-latest
             cargo-arg: ""
             file-name: "song_data_core_rust.dll"
             lib-name: "song_data_core_rust.dll.lib"
