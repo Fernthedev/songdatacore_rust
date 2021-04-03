@@ -31,8 +31,8 @@ jobs:
           - targetOS: macOS-latest
             os: macOS-latest
             cargo-arg: ""
-            file-name: "libsong_data_core_rust.so"
-            lib-name: "libsong_data_core_rust.so"
+            file-name: "libsong_data_core_rust.dylib"
+            lib-name: "libsong_data_core_rust.dylib"
           - targetOS: windows-latest
             os: windows-latest
             cargo-arg: ""
