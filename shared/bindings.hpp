@@ -122,49 +122,60 @@ extern "C" {
 ///
 /// Get the song list and clone it
 ///
-const BeatStarDataFile *beatstar_retrieve_database_extern();
+const BeatStarDataFile *Beatstar_RetrieveDatabase();
 
 ///
 /// Get the song based on hash
 ///
 ///
-const BeatStarSong *beatstar_get_song_extern(const char *hash);
+const BeatStarSong *Beatstar_GetSong(const char *hash);
 
-RustCStringWrapper rust_cstring_wrapper_c_new(char *c_str);
+RustCStringWrapper RustCStringWrapper_c_new(char *c_str);
 
-const BeatStarSong *extern_map_songs_get(const BeatStarDataFile *selfI,
-                                         const RustCStringWrapper *index);
+const BeatStarSong *BeatStarDataFile_map_SongsGet(const BeatStarDataFile *self_i,
+                                                  const RustCStringWrapper *index);
 
-const RustCStringWrapper *extern_map_songs_get_key(const BeatStarDataFile *selfI, uintptr_t index);
+const RustCStringWrapper *BeatStarDataFile_map_SongsGetKey(const BeatStarDataFile *self_i,
+                                                           uintptr_t index);
 
-uintptr_t extern_map_songs_len(const BeatStarDataFile *selfI);
+uintptr_t BeatStarDataFile_map_SongsLen(const BeatStarDataFile *self_i);
 
-float rating(const BeatStarSong *selfI);
+float BeatStarSong_rating(const BeatStarSong *self_i);
 
-const BeatStarSongDifficultyStats *extern_vec_diffs_get(const BeatStarSong *selfI, uintptr_t index);
+const BeatStarSongDifficultyStats *BeatStarSong_DiffGet(const BeatStarSong *self_i,
+                                                        uintptr_t index);
 
-uintptr_t extern_vec_diffs_len(const BeatStarSong *selfI);
+uintptr_t BeatStarSong_DiffLen(const BeatStarSong *self_i);
 
-const HashMap<RustCStringWrapper, BeatStarSongDifficultyStats> *extern_map_characteristics_get(const BeatStarSong *selfI,
-                                                                                               const BeatStarCharacteristics *index);
+const HashMap<RustCStringWrapper, BeatStarSongDifficultyStats> *BeatStarSong_map_CharacteristicsGet(const BeatStarSong *self_i,
+                                                                                                    const BeatStarCharacteristics *index);
 
-const BeatStarCharacteristics *extern_map_characteristics_key_get(const BeatStarSong *selfI,
-                                                                  uintptr_t index);
+const BeatStarCharacteristics *BeatStarSong_map_CharacteristicsKeyGet(const BeatStarSong *self_i,
+                                                                      uintptr_t index);
 
-uintptr_t extern_map_characteristics_len(const BeatStarSong *selfI);
+uintptr_t BeatStarSong_map_CharacteristicsLen(const BeatStarSong *self_i);
 
-uintptr_t get_characteristics_len(const BeatStarSong *selfI,
-                                  const BeatStarCharacteristics *beat_char);
+///
+/// Gets the size of the hashmap of the characteristics
+///
+uintptr_t BeatStarSong_CharacteristicDifficultyLen(const BeatStarSong *self_i,
+                                                   const BeatStarCharacteristics *beat_char);
 
-const BeatStarSongDifficultyStats *get_characteristic_stats(const BeatStarSong *selfI,
-                                                            const BeatStarCharacteristics *beat_char,
-                                                            char *beat_key2);
+///
+/// Gets the difficulty stats based on the characteristic key + difficulty key
+///
+const BeatStarSongDifficultyStats *BeatStarSong_CharacteristicStatsGet(const BeatStarSong *self_i,
+                                                                       const BeatStarCharacteristics *beat_char,
+                                                                       char *beat_key2);
 
-const char *get_characteristics_str(const BeatStarSong *selfI,
-                                    const BeatStarCharacteristics *beat_char,
-                                    uintptr_t index);
+///
+/// Gets the key based on the index, converted to a string.
+///
+const char *BeatStarSong_CharacteristicsGetStrKey(const BeatStarSong *self_i,
+                                                  const BeatStarCharacteristics *beat_char,
+                                                  uintptr_t index);
 
-BeatStarCharacteristics get_diff_type(const BeatStarSongDifficultyStats *self);
+BeatStarCharacteristics BeatStarSongDifficultyStats_DiffCharacteristicsGet(const BeatStarSongDifficultyStats *self_i);
 
 } // extern "C"
 

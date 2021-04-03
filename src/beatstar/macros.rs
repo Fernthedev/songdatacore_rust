@@ -2,9 +2,9 @@
 macro_rules! vec_extern {
     ($clazz:ident, $vec:ident, $r:ty, $func_get_name:ident, $func_len_name:ident) => {
         #[no_mangle]
-        pub extern "C" fn $func_get_name(selfI: &$clazz, index: usize) -> *const $r {
+        pub extern "C" fn $func_get_name(self_i: &$clazz, index: usize) -> *const $r {
             unsafe {
-                return match (*selfI.$vec).get(index) {
+                return match (*self_i.$vec).get(index) {
                     Some(e) => e,
                     None => ptr::null(),
                 }
@@ -12,9 +12,9 @@ macro_rules! vec_extern {
         }
 
         #[no_mangle]
-        pub extern "C" fn $func_len_name(selfI: &$clazz) -> usize {
+        pub extern "C" fn $func_len_name(self_i: &$clazz) -> usize {
             unsafe {
-                return (*selfI.$vec).len();
+                return (*self_i.$vec).len();
             }
         }
     };
@@ -24,9 +24,9 @@ macro_rules! vec_extern {
 macro_rules! map_extern {
     ($clazz:ident, $hashmap:ident, $k:ty, $r:ty, $func_get_name:ident, $func_len_name:ident, $func_get_key_name:ident) => {
         #[no_mangle]
-        pub extern "C" fn $func_get_name(selfI: &$clazz, index: &$k) -> *const $r {
+        pub extern "C" fn $func_get_name(self_i: &$clazz, index: &$k) -> *const $r {
             unsafe {
-                return match (*selfI.$hashmap).get(index) {
+                return match (*self_i.$hashmap).get(index) {
                     Some(e) => e,
                     None => ptr::null(),
                 }
@@ -34,9 +34,9 @@ macro_rules! map_extern {
         }
 
         #[no_mangle]
-        pub extern "C" fn $func_get_key_name(selfI: &$clazz, index: usize) -> *const $k {
+        pub extern "C" fn $func_get_key_name(self_i: &$clazz, index: usize) -> *const $k {
             unsafe {
-                let keys: Vec<&$k> = (*selfI.$hashmap).keys().collect();
+                let keys: Vec<&$k> = (*self_i.$hashmap).keys().collect();
                 return match keys.get(index) {
                     Some(e) => *e,
                     None => ptr::null(),
@@ -45,9 +45,9 @@ macro_rules! map_extern {
         }
 
         #[no_mangle]
-        pub extern "C" fn $func_len_name(selfI: &$clazz) -> usize {
+        pub extern "C" fn $func_len_name(self_i: &$clazz) -> usize {
             unsafe {
-                return (*selfI.$hashmap).len();
+                return (*self_i.$hashmap).len();
             }
         }
     };

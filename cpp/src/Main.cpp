@@ -11,13 +11,13 @@ int main() {
 
     cout << "Fetching from db\n";
 
-    song_data_core::beatstar_retrieve_database_extern();
+    song_data_core::Beatstar_RetrieveDatabase();
 
     cout << "Time taken to fetch from database: " << stopwatch.elapsed<stopwatch::milliseconds>() << "ms\n";
 
-    auto song = song_data_core::beatstar_get_song_extern("4B2DA842B687EC4CFBC948C583C21C79D4120DE0");
+    auto song = song_data_core::Beatstar_GetSong("4B2DA842B687EC4CFBC948C583C21C79D4120DE0");
 
-    auto diff = song_data_core::extern_vec_diffs_get(song, 0);
+    auto diff = song_data_core::BeatStarSong_DiffGet(song, 0);
 
     cout << "Got the stars: " << diff->diff.string_data << " " << diff->stars;
 

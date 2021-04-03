@@ -66,7 +66,7 @@ pub fn beatstar_update_database() -> Option<Response> {
 /// Get the song list and clone it
 ///
 #[no_mangle]
-pub extern "C" fn beatstar_retrieve_database_extern() -> *const BeatStarDataFile {
+pub extern "C" fn Beatstar_RetrieveDatabase() -> *const BeatStarDataFile {
     match beatstar_retrieve_database() {
         Ok(e) => e,
         Err(e) => panic!(
@@ -94,7 +94,7 @@ pub fn beatstar_retrieve_database() -> Result<&'static BeatStarDataFile, Respons
 ///
 ///
 #[no_mangle]
-pub unsafe extern "C" fn beatstar_get_song_extern(hash: *const c_char) -> *const BeatStarSong {
+pub unsafe extern "C" fn Beatstar_GetSong(hash: *const c_char) -> *const BeatStarSong {
     if hash.is_null() {
         return ptr::null_mut();
     }

@@ -3,8 +3,8 @@ use std::collections::HashMap;
 use std::result;
 use std::str::FromStr;
 
-#[serde(rename_all = "PascalCase", rename = "with typo")]
 #[derive(Serialize, Deserialize, Clone)]
+#[serde(rename_all = "PascalCase", rename = "with typo")]
 pub struct BeatStarSongJson {
     #[serde(rename = "Bpm")]
     pub bpm: f32,
@@ -44,8 +44,9 @@ pub enum SongDiffs {
     ExpertPlus,
 }
 
-#[serde(rename_all = "PascalCase")]
+
 #[derive(Serialize, Deserialize, Clone)]
+#[serde(rename_all = "PascalCase")]
 pub struct BeatStarSongDifficultyStatsJson {
     pub diff: String,
     pub scores: i64,
@@ -60,8 +61,8 @@ pub struct BeatStarSongDifficultyStatsJson {
 }
 
 #[repr(C)]
-#[serde(rename_all = "PascalCase")]
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Hash, Copy, Clone)]
+#[serde(rename_all = "PascalCase")]
 pub enum BeatStarCharacteristics {
     Unknown, // TODO: Unkown? intentional mispelling? We're fixing it here until it breaks
     Standard,
