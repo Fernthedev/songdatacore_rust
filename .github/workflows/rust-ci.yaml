@@ -37,7 +37,7 @@ jobs:
     - name: Upload artifact
       uses: actions/upload-artifact@v2
       with:
-        name: ${{ matrix.os }}-libsong_data_core_rust.so
+        name: ${{ runner.os }}-libsong_data_core_rust.so
         path: |
           ./target/release/libsong_data_core_rust.so
         if-no-files-found: error
