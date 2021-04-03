@@ -136,7 +136,12 @@ jobs:
 
     - name: QPMify for NDK
       if: contains(matrix.cargo-arg, 'ndk')
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
+
+
+
         chmod +x ./QPM/QPM
         ./QPM/QPM restore
         ./QPM/QPM package edit version "${{ steps.release_data.outputs.release }}"
@@ -150,10 +155,17 @@ jobs:
         git config user.email "<>"
         echo Changed git email
 
+        git tag --force ${{ steps.get_tag_version.outputs.TAG }} ${{ steps.get_commid_id.outputs.ID }}
+
+        git branch version-${{ steps.get_tag_version.outputs.TAG }}
+        git push -u origin version-${{ steps.get_tag_version.outputs.TAG }} --force --tags
+
         git add qpm.json
         echo Added QPM.json
         git commit -m "Update Version and post restore"
         echo Comitted the json file
+
+
     - name: Get Commit ID
       if: contains(matrix.cargo-arg, 'ndk')
       id: get_commit_id
