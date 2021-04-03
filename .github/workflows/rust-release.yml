@@ -96,6 +96,7 @@ jobs:
       run: cargo +nightly test --verbose
       
     - name: Upload to Release
+      id: upload_file_release
       uses: softprops/action-gh-release@v1
 # Needed?      if: startsWith(github.ref, 'refs/tags/')
       with:
@@ -104,3 +105,54 @@ jobs:
           ./${{ matrix.targetOS }}-${{ matrix.lib-name }}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Get QPM
+      if: contains(matrix.cargo-arg, 'ndk')
+      uses: dawidd6/action-download-artifact@v2
+      with:
+        github_token: ${{secrets.GITHUB_TOKEN}}
+        workflow: main.yml
+        name: QPM-ubuntu-x64
+        path: QPM
+        repo: sc2ad/QuestPackageManager
+
+    - name: Get Tag Version
+      if: contains(matrix.cargo-arg, 'ndk')
+      id: get_tag_version
+      run: |
+        echo ${GITHUB_REF#refs/tags/}
+        echo ::set-output name=TAG::${GITHUB_REF#refs/tags/}
+        echo ::set-output name=VERSION::${GITHUB_REF#refs/tags/v}
+
+    - name: QPMify for NDK
+      if: contains(matrix.cargo-arg, 'ndk')
+      run: |
+        ./QPM/QPM restore
+        ./QPM/QPM package edit version "${{ steps.get_tag_version.outputs.VERSION }}"
+
+        ./QPM/QPM package edit-extra "branchName" "version-${{ steps.get_tag_version.outputs.TAG }}"
+        ./QPM/QPM package edit-extra "soLink" "${{ steps.upload_file_release.url }}"
+
+        # Commit the change to the package, .vscode/c_cpp_properties.json, and Android.mk
+        git config user.name "Github Actions"
+        git config user.email "<>"
+
+        git add qpm.json
+        git commit -m "Update Version and post restore"
+    - name: Get Commit ID
+      if: contains(matrix.cargo-arg, 'ndk')
+      id: get_commit_id
+      run: |
+        echo `git rev-parse HEAD`
+        echo ::set-output name=ID::`git rev-parse HEAD`
+
+    - name: Push New Commit and Tag
+      if: contains(matrix.cargo-arg, 'ndk')
+      run: |
+        git push origin HEAD:version-${{ steps.get_tag_version.outputs.TAG }} --force
+        git tag --force ${{ steps.get_tag_version.outputs.TAG }} ${{ steps.get_created_commit_id.outputs.ID }}
+        git push --tags --force
+
+    - name: QPM Publish
+      if: contains(matrix.cargo-arg, 'ndk')
+      run: ./QPM/QPM publish

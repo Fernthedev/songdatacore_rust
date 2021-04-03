@@ -5,19 +5,12 @@
     "name": "SongDataCore",
     "id": "songdatacore",
     "version": "0.1.0",
-    "url": null,
-    "additionalData": {}
-  },
-  "dependencies": [
-    {
-      "id": "beatsaber-hook",
-      "versionRange": "*",
-      "additionalData": {
-        "extraFiles": [
-          "src/inline-hook"
-        ]
-      }
+    "url": "https://github.com/Fernthedev/songdatacore_rust",
+    "additionalData": {
+      "overrideSoName": "aarch64-linux-android-libsong_data_core_rust.so",
+      "soLink": "https://github.com/Fernthedev/songdatacore_rust/releases/download/0.1.0/aarch64-linux-android-libsong_data_core_rust.so"
     }
-  ],
+  },
+  "dependencies": [],
   "additionalData": {}
 }
