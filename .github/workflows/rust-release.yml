@@ -146,10 +146,14 @@ jobs:
 
         # Commit the change to the package, .vscode/c_cpp_properties.json, and Android.mk
         git config user.name "Github Actions"
+        echo Changed git name
         git config user.email "<>"
+        echo Changed git email
 
         git add qpm.json
+        echo Added QPM.json
         git commit -m "Update Version and post restore"
+        echo Comitted the json file
     - name: Get Commit ID
       if: contains(matrix.cargo-arg, 'ndk')
       id: get_commit_id
