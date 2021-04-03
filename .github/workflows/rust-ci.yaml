@@ -1,4 +1,4 @@
-name: Rust Release
+name: Rust CI
 
 on:
   push:
@@ -31,9 +31,9 @@ jobs:
         toolchain: nightly
     
     - name: Build
-      run: cargo build --verbose --release
+      run: cargo +nightly build --verbose --release
     - name: Run tests
-      run: cargo test --verbose
+      run: cargo +nightly test --verbose
     - name: Upload artifact
       uses: actions/upload-artifact@v2
       with:
