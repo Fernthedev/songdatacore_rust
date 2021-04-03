@@ -92,7 +92,8 @@ jobs:
         echo Done
       shell: bash  
     - name: Run tests
-      run: cargo +nightly ${{matrix.cargo-arg}} test --verbose
+      if: ${{ !contains(matrix.cargo-arg, 'ndk') }}
+      run: cargo +nightly test --verbose
       
     - name: Upload to Release
       uses: softprops/action-gh-release@v1
