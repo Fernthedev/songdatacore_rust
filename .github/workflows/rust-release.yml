@@ -65,6 +65,7 @@ jobs:
       with:
         ndk-version: r22
     - name: Download Cargo NDK
+      if: matrix.cargo-arg == 'ndk'
       run: |
         rustup default nightly
         cargo +nightly install cargo-ndk
