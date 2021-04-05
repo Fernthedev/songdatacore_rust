@@ -7,13 +7,12 @@ use std::ffi::CStr;
 use std::os::raw::c_char;
 use std::ptr;
 use stopwatch::Stopwatch;
+use self::surf::Response;
 
-use reqwest::Response;
-use reqwest::Body;
 
 extern crate chrono;
 extern crate tokio;
-extern crate reqwest;
+extern crate surf;
 
 pub const SCRAPED_SCORE_SABER_URL: &str = "https://raw.githubusercontent.com/andruzzzhka/BeatSaberScrappedData/master/combinedScrappedData.json";
 
@@ -32,7 +31,7 @@ pub async fn beatstar_update_database() -> Option<Response> {
         let mut stopwatch = Stopwatch::start_new();
 
         // Await the response...
-        let response: Response = reqwest::get(SCRAPED_SCORE_SABER_URL).await.unwrap();
+        let mut response = surf::get(SCRAPED_SCORE_SABER_URL).await.unwrap();
         println!("Response: {}", response.status());
 
         println!(
@@ -47,7 +46,7 @@ pub async fn beatstar_update_database() -> Option<Response> {
             //     stdout().write_all(&chunk.unwrapno()).await.unwrap();
             // }
 
-            let body: Vec<BeatStarSongJson> = response.json().await.unwrap();
+            let body: Vec<BeatStarSongJson> = response.body_json().await.unwrap();
 
             println!(
                 "Parsed beat file into json data in {0}ms ({1}ms)",
@@ -82,7 +81,7 @@ pub async fn beatstar_update_database() -> Option<Response> {
 pub extern "C" fn Beatstar_RetrieveDatabase() -> *const BeatStarDataFile {
     return match TokioRuntime.block_on(beatstar_retrieve_database()) {
         Ok(e) => e,
-        Err(e) => panic!("Unable to fetch from database {0}", e.status().as_str()),
+        Err(e) => panic!("Unable to fetch from database {0}", e.status()),
     };
 }
 
@@ -121,7 +120,7 @@ pub unsafe extern "C" fn Beatstar_GetSong(hash: *const c_char) -> *const BeatSta
             None => ptr::null(),
             Some(e) => e,
         },
-        Err(e) => panic!("Unable to fetch from database {0}", e.status().as_str()),
+        Err(e) => panic!("Unable to fetch from database {0}", e.status()),
     }
 }
 

@@ -8,7 +8,7 @@ edition = "2018"
 
 [dependencies]
 #For Http
-reqwest = { version = "0.11", features = ["json"] }
+surf = "2.2.0"
 # hyper-tls = "0.5.0" # HTTP/s
 tokio = { version = "1", features = ["full"] }
 
