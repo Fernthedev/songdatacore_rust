@@ -1,48 +1,72 @@
 use crate::beatstar::data::BeatStarSongJson;
 use crate::beatstar::ffi::{BeatStarDataFile, BeatStarSong, RustCStringWrapper};
 use crate::beatstar::BEAT_STAR_FILE;
+use crate::beatstar::TokioRuntime;
 use std::collections::HashMap;
 use std::ffi::CStr;
 use std::os::raw::c_char;
 use std::ptr;
-use std::time::Duration;
 use stopwatch::Stopwatch;
-use ureq::{Agent, Response};
+
+use hyper_tls::HttpsConnector;
+use hyper::body::Buf;
+use hyper::Client;
+use hyper::Response;
+use hyper::{Body, Uri};
 
 extern crate chrono;
+extern crate hyper;
+extern crate tokio;
 
 pub const SCRAPED_SCORE_SABER_URL: &str = "https://raw.githubusercontent.com/andruzzzhka/BeatSaberScrappedData/master/combinedScrappedData.json";
 
 const HTTP_OK: u16 = 200;
 
-lazy_static! {
-    static ref AGENT: Agent = ureq::AgentBuilder::new()
-        .timeout_read(Duration::from_secs(5))
-        .timeout_write(Duration::from_secs(5))
-        .build();
-}
+
 
 ///
 /// Returns None unless error, in which you get the response
 ///
 /// Fetches the latest song data and stores it indefinitely
 ///
-pub fn beatstar_update_database() -> Option<Response> {
+pub async fn beatstar_update_database() -> Option<Response<Body>> {
     if BEAT_STAR_FILE.get().is_none() {
         println!("Fetching from internet");
         let mut stopwatch = Stopwatch::start_new();
-        let response = AGENT.get(SCRAPED_SCORE_SABER_URL).call().unwrap();
+
+        let client = Client::builder().build::<_, hyper::Body>(HttpsConnector::new());
+
+        // Parse an `http::Uri`...
+        let uri: Uri = SCRAPED_SCORE_SABER_URL.parse().unwrap();
+
+        // Await the response...
+
+        let response: Response<Body> = client.get(uri).await.unwrap();
+        println!("Response: {}", response.status());
+
         println!(
             "Received data from internet in {0}ms",
             stopwatch.elapsed().as_millis()
         );
 
         if response.status() == HTTP_OK {
-            let body: Vec<BeatStarSongJson> = response.into_json().unwrap();
+            let mut stopwatch2 = Stopwatch::start_new();
+
+            // while let Some(chunk) = response.body_mut().data().await {
+            //     stdout().write_all(&chunk.unwrapno()).await.unwrap();
+            // }
+
+            let body: Vec<BeatStarSongJson> =
+                serde_json::from_reader(hyper::body::aggregate(response).await.unwrap().reader())
+                    .unwrap();
+
             println!(
-                "Parsed beat file into json data in {0}ms",
-                stopwatch.elapsed().as_millis()
+                "Parsed beat file into json data in {0}ms ({1}ms)",
+                stopwatch.elapsed().as_millis(),
+                stopwatch2.elapsed().as_millis()
             );
+
+            stopwatch2.stop();
 
             let parsed_data = parse_beatstar(&body);
 
@@ -67,20 +91,17 @@ pub fn beatstar_update_database() -> Option<Response> {
 ///
 #[no_mangle]
 pub extern "C" fn Beatstar_RetrieveDatabase() -> *const BeatStarDataFile {
-    match beatstar_retrieve_database() {
+    return match TokioRuntime.block_on(beatstar_retrieve_database()) {
         Ok(e) => e,
-        Err(e) => panic!(
-            "Unable to fetch from database {0}",
-            e.into_string().unwrap()
-        ),
-    }
+        Err(e) => panic!("Unable to fetch from database {0}", e.status().as_str()),
+    };
 }
 
 ///
 /// Get the song list and clone it
 ///
-pub fn beatstar_retrieve_database() -> Result<&'static BeatStarDataFile, Response> {
-    if let Some(e) = beatstar_update_database() {
+pub async fn beatstar_retrieve_database() -> Result<&'static BeatStarDataFile, Response<Body>> {
+    if let Some(e) = beatstar_update_database().await {
         return Err(e);
     }
 
@@ -106,29 +127,25 @@ pub unsafe extern "C" fn Beatstar_GetSong(hash: *const c_char) -> *const BeatSta
         Err(_) => return ptr::null_mut(),
     };
 
-    match beatstar_get_song(hash_str) {
+    match TokioRuntime.block_on(beatstar_get_song(hash_str)) {
         Ok(e) => match e {
             None => ptr::null(),
             Some(e) => e,
         },
-        Err(e) => panic!(
-            "Unable to fetch from database {0}",
-            e.into_string().unwrap()
-        ),
+        Err(e) => panic!("Unable to fetch from database {0}", e.status().as_str()),
     }
 }
 
 ///
 /// Gets a song based on it's hash
 ///
-pub fn beatstar_get_song(hash: &str) -> Result<Option<&BeatStarSong>, Response> {
+pub async fn beatstar_get_song(hash: &str) -> Result<Option<&BeatStarSong>, Response<Body>> {
     unsafe {
-        return match beatstar_update_database() {
-            None => Ok((*BEAT_STAR_FILE
-                .get()
-                .unwrap()
-                .songs)
-                .get(&RustCStringWrapper::new(hash.into()))),
+        return match beatstar_update_database().await {
+            None => {
+                Ok((*BEAT_STAR_FILE.get().unwrap().songs)
+                    .get(&RustCStringWrapper::new(hash.into())))
+            }
             Some(e) => Err(e),
         };
     }
@@ -151,5 +168,7 @@ fn parse_beatstar(songs: &[BeatStarSongJson]) -> BeatStarDataFile {
         song_map.insert(song.hash.clone(), song);
     }
 
-    BeatStarDataFile { songs: Box::into_raw(Box::new(song_map)) }
+    BeatStarDataFile {
+        songs: Box::into_raw(Box::new(song_map)),
+    }
 }
