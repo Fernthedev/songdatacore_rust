@@ -12,8 +12,10 @@ mod macros;
 mod ffi;
 
 lazy_static! {
-    static ref TokioRuntime: Runtime = Builder::new_multi_thread()
-        .worker_threads(6)
+    static ref TokioRuntime: Runtime = Builder::
+    // new_multi_thread()
+        // .worker_threads(6)
+        new_current_thread()
         .enable_all()
         .build()
         .unwrap();

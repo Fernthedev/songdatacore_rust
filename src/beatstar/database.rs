@@ -8,15 +8,12 @@ use std::os::raw::c_char;
 use std::ptr;
 use stopwatch::Stopwatch;
 
-use hyper_tls::HttpsConnector;
-use hyper::body::Buf;
-use hyper::Client;
-use hyper::Response;
-use hyper::{Body, Uri};
+use reqwest::Response;
+use reqwest::Body;
 
 extern crate chrono;
-extern crate hyper;
 extern crate tokio;
+extern crate reqwest;
 
 pub const SCRAPED_SCORE_SABER_URL: &str = "https://raw.githubusercontent.com/andruzzzhka/BeatSaberScrappedData/master/combinedScrappedData.json";
 
@@ -29,19 +26,13 @@ const HTTP_OK: u16 = 200;
 ///
 /// Fetches the latest song data and stores it indefinitely
 ///
-pub async fn beatstar_update_database() -> Option<Response<Body>> {
+pub async fn beatstar_update_database() -> Option<Response> {
     if BEAT_STAR_FILE.get().is_none() {
         println!("Fetching from internet");
         let mut stopwatch = Stopwatch::start_new();
 
-        let client = Client::builder().build::<_, hyper::Body>(HttpsConnector::new());
-
-        // Parse an `http::Uri`...
-        let uri: Uri = SCRAPED_SCORE_SABER_URL.parse().unwrap();
-
         // Await the response...
-
-        let response: Response<Body> = client.get(uri).await.unwrap();
+        let response: Response = reqwest::get(SCRAPED_SCORE_SABER_URL).await.unwrap();
         println!("Response: {}", response.status());
 
         println!(
@@ -56,9 +47,7 @@ pub async fn beatstar_update_database() -> Option<Response<Body>> {
             //     stdout().write_all(&chunk.unwrapno()).await.unwrap();
             // }
 
-            let body: Vec<BeatStarSongJson> =
-                serde_json::from_reader(hyper::body::aggregate(response).await.unwrap().reader())
-                    .unwrap();
+            let body: Vec<BeatStarSongJson> = response.json().await.unwrap();
 
             println!(
                 "Parsed beat file into json data in {0}ms ({1}ms)",
@@ -100,7 +89,7 @@ pub extern "C" fn Beatstar_RetrieveDatabase() -> *const BeatStarDataFile {
 ///
 /// Get the song list and clone it
 ///
-pub async fn beatstar_retrieve_database() -> Result<&'static BeatStarDataFile, Response<Body>> {
+pub async fn beatstar_retrieve_database() -> Result<&'static BeatStarDataFile, Response> {
     if let Some(e) = beatstar_update_database().await {
         return Err(e);
     }
@@ -139,7 +128,7 @@ pub unsafe extern "C" fn Beatstar_GetSong(hash: *const c_char) -> *const BeatSta
 ///
 /// Gets a song based on it's hash
 ///
-pub async fn beatstar_get_song(hash: &str) -> Result<Option<&BeatStarSong>, Response<Body>> {
+pub async fn beatstar_get_song(hash: &str) -> Result<Option<&BeatStarSong>, Response> {
     unsafe {
         return match beatstar_update_database().await {
             None => {
