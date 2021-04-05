@@ -86,7 +86,9 @@ impl FromStr for BeatStarCharacteristics {
             "noarrows" => Ok(BeatStarCharacteristics::NoArrows),
             "lightshow" => Ok(BeatStarCharacteristics::Lightshow),
             "degree90" => Ok(BeatStarCharacteristics::Degree90),
+            "90degree" => Ok(BeatStarCharacteristics::Degree90),
             "degree360" => Ok(BeatStarCharacteristics::Degree360),
+            "360degree" => Ok(BeatStarCharacteristics::Degree360),
             "lawless" => Ok(BeatStarCharacteristics::Lawless),
             _ => Err(()),
         }
