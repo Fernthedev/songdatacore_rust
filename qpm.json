@@ -7,7 +7,7 @@
     "version": "0.1.0",
     "url": "https://github.com/Fernthedev/songdatacore_rust",
     "additionalData": {
-      "overrideSoName": "aarch64-linux-android-libsong_data_core_rust.so",
+      "overrideSoName": "libandroid-libsong_data_core_rust.so",
       "soLink": "https://github.com/Fernthedev/songdatacore_rust/releases/download/0.1.0/aarch64-linux-android-libsong_data_core_rust.so"
     }
   },

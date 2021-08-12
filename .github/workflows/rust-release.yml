@@ -29,6 +29,7 @@ jobs:
             os: ubuntu-latest
             cargo-arg: ""
             file-name: "libsong_data_core_rust.so"
+            finalPrefix: ${{ matrix.targetOS }}
             lib-name: ""
             build-folder: "./target/release/"
             
@@ -36,6 +37,7 @@ jobs:
             os: macOS-latest
             cargo-arg: ""
             file-name: "libsong_data_core_rust.dylib"
+            finalPrefix: ${{ matrix.targetOS }}
             lib-name: ""
             build-folder: "./target/release/"
             
@@ -44,12 +46,14 @@ jobs:
             cargo-arg: ""
             file-name: "song_data_core_rust.dll"
             lib-name: "song_data_core_rust.dll.lib"
+            finalPrefix: ${{ matrix.targetOS }}
             build-folder: "./target/release/"
             
           - targetOS:  aarch64-linux-android
             os: ubuntu-latest
             cargo-arg: "ndk -t arm64-v8a -o target/release"
             file-name: "libsong_data_core_rust.so"
+            finalPrefix: "libandroid-"
             lib-name: ""
             build-folder: "./target/release/arm64-v8a"
 
@@ -93,9 +97,9 @@ jobs:
       run: |
         ls ./target/release/
         ls ${{ matrix.build-folder }}
-        mv "${{ matrix.build-folder }}/${{ matrix.file-name }}" "./${{ matrix.targetOS }}-${{ matrix.file-name }}"
+        mv "${{ matrix.build-folder }}/${{ matrix.file-name }}" "./${{ matrix.finalPrefix }}-${{ matrix.file-name }}"
         # Move only if exists
-        [ -f ${{ matrix.build-folder }}/${{ matrix.lib-name }} ] && mv ${{ matrix.build-folder }}/${{ matrix.lib-name }} ./${{ matrix.targetOS }}-${{ matrix.lib-name }} || true
+        [ -f ${{ matrix.build-folder }}/${{ matrix.lib-name }} ] && mv ${{ matrix.build-folder }}/${{ matrix.lib-name }} ./${{ matrix.finalPrefix }}-${{ matrix.lib-name }} || true
         echo Done
       shell: bash  
     - name: Run tests
@@ -108,8 +112,8 @@ jobs:
 # Needed?      if: startsWith(github.ref, 'refs/tags/')
       with:
         files: |
-          ./${{ matrix.targetOS }}-${{ matrix.file-name }}
-          ./${{ matrix.targetOS }}-${{ matrix.lib-name }}
+          ./${{ matrix.finalPrefix }}-${{ matrix.file-name }}
+          ./${{ matrix.finalPrefix }}-${{ matrix.lib-name }}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -149,7 +153,7 @@ jobs:
         ./QPM/QPM package edit version "${{ steps.release_data.outputs.release }}"
 
         ./QPM/QPM package edit-extra "branchName" "version-${{ steps.get_tag_version.outputs.TAG }}"
-        ./QPM/QPM package edit-extra "soLink" "https://github.com/${{ github.repository }}/releases/download/${{ steps.get_tag_version.outputs.TAG }}/${{ matrix.targetOS }}-${{ matrix.file-name }}"
+        ./QPM/QPM package edit-extra "soLink" "https://github.com/${{ github.repository }}/releases/download/${{ steps.get_tag_version.outputs.TAG }}/${{ matrix.finalPrefix }}-${{ matrix.file-name }}"
 
         # Commit the change to the package, .vscode/c_cpp_properties.json, and Android.mk
         git config user.name "Github Actions"
