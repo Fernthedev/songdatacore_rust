@@ -29,7 +29,7 @@ jobs:
             os: ubuntu-latest
             cargo-arg: ""
             file-name: "libsong_data_core_rust.so"
-            finalPrefix: ${{ matrix.targetOS }}
+            finalPrefix: ${{ targetOS }}
             lib-name: ""
             build-folder: "./target/release/"
             
@@ -37,7 +37,7 @@ jobs:
             os: macOS-latest
             cargo-arg: ""
             file-name: "libsong_data_core_rust.dylib"
-            finalPrefix: ${{ matrix.targetOS }}
+            finalPrefix: ${{ targetOS }}
             lib-name: ""
             build-folder: "./target/release/"
             
@@ -46,7 +46,7 @@ jobs:
             cargo-arg: ""
             file-name: "song_data_core_rust.dll"
             lib-name: "song_data_core_rust.dll.lib"
-            finalPrefix: ${{ matrix.targetOS }}
+            finalPrefix: ${{ targetOS }}
             build-folder: "./target/release/"
             
           - targetOS:  aarch64-linux-android
