@@ -1,4 +1,4 @@
-use crate::beatstar::data::BeatStarSongJson;
+use crate::beatstar::data::{BeatStarCharacteristics, BeatStarSongDifficultyStatsJson, BeatStarSongJson};
 use crate::beatstar::ffi::{BeatStarDataFile, BeatStarSong, RustCStringWrapper};
 use crate::beatstar::BEAT_STAR_FILE;
 use std::collections::HashMap;
@@ -6,6 +6,7 @@ use std::ffi::CStr;
 use std::io::{Cursor, Read};
 use std::os::raw::c_char;
 use std::ptr;
+use std::str::FromStr;
 use std::time::Duration;
 use anyhow::Context;
 use stopwatch::Stopwatch;
@@ -46,7 +47,33 @@ pub fn beatstar_zip_content(response: ureq::Response) -> Result<Vec<BeatStarSong
 
     file.read_to_end(&mut string_buffer)?;
 
-    let json: Vec<BeatStarSongJson> = serde_json::from_slice(string_buffer.as_slice())?;
+    let mut json: Vec<BeatStarSongJson> = serde_json::from_slice(string_buffer.as_slice())?;
+
+    for song in &mut json {
+        
+        type DiffMap = HashMap<String, BeatStarSongDifficultyStatsJson>;
+
+        let mut characteristics: HashMap<BeatStarCharacteristics, DiffMap> = HashMap::new();
+
+
+
+        'diffLoop: for diff in &song.diffs {
+            let char = BeatStarCharacteristics::from_str(diff.char.as_str());
+
+            if char.is_err() {
+                continue 'diffLoop;
+            }
+            
+
+            let char_map  = characteristics.entry(char.unwrap()).or_insert_with(DiffMap::new);
+
+            char_map.insert(diff.diff.clone(), diff.clone());
+
+            println!("Got characteristics {:?}", characteristics);
+        }
+
+        song.characteristics = characteristics;
+    };
 
     Ok(json)
 }
@@ -173,7 +200,7 @@ fn parse_beatstar(songs: &[BeatStarSongJson]) -> BeatStarDataFile {
     let mut song_converted: Vec<BeatStarSong> = vec![];
 
     for song in songs {
-        song_converted.push(BeatStarSong::convert(&song))
+        song_converted.push(BeatStarSong::convert(song))
     }
 
     let mut song_map: HashMap<RustCStringWrapper, BeatStarSong> = HashMap::new();

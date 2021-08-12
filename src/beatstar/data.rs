@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::result;
 use std::str::FromStr;
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "PascalCase", rename = "with typo")]
 pub struct BeatStarSongJson {
     #[serde(rename = "Bpm")]
@@ -60,7 +60,7 @@ pub enum SongDiffs {
 }
 
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "PascalCase")]
 pub struct BeatStarSongDifficultyStatsJson {
     pub diff: String,
