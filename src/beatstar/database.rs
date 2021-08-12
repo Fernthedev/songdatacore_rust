@@ -8,7 +8,6 @@ use std::os::raw::c_char;
 use std::ptr;
 use std::time::Duration;
 use anyhow::Context;
-use memmap::MmapOptions;
 use stopwatch::Stopwatch;
 use ureq::{Agent, Response};
 
