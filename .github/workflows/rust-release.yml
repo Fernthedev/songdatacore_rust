@@ -53,7 +53,7 @@ jobs:
             os: ubuntu-latest
             cargo-arg: "ndk -t arm64-v8a -o target/release"
             file-name: "libsong_data_core_rust.so"
-            finalPrefix: "libandroid-"
+            finalPrefix: "libandroid"
             lib-name: ""
             build-folder: "./target/release/arm64-v8a"
 
