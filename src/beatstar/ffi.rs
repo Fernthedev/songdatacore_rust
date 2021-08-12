@@ -117,10 +117,15 @@ map_extern!(
 #[repr(C)]
 pub struct BeatStarSong {
     pub bpm: f32,
-    pub played_count: u32,
     pub upvotes: u32,
     pub downvotes: u32,
+    pub downloads: u32,
+    pub duration_secs: u32,
     pub key: RustCStringWrapper,
+    pub song_name: RustCStringWrapper,
+    pub song_sub_name: RustCStringWrapper,
+    pub song_author_name: RustCStringWrapper,
+    pub level_author_name: RustCStringWrapper,
     pub diffs: *const Vec<BeatStarSongDifficultyStats>,
     pub uploaded: RustCStringWrapper,
     pub hash: RustCStringWrapper,
@@ -149,7 +154,7 @@ impl BeatStarSong {
             for (str, diff_json) in char_map {
                 char_map_convert.insert(
                     RustCStringWrapper::new(str.clone().into()),
-                    BeatStarSongDifficultyStats::convert(&diff_json),
+                    BeatStarSongDifficultyStats::convert(diff_json),
                 );
             }
 
@@ -158,14 +163,19 @@ impl BeatStarSong {
 
         BeatStarSong {
             bpm: og.bpm,
-            played_count: og.played_count,
             upvotes: og.upvotes,
             downvotes: og.downvotes,
+            downloads: og.downloads,
+            song_name: RustCStringWrapper::new(og.song_name.clone().into()),
+            song_author_name: RustCStringWrapper::new(og.song_author_name.clone().into()),
+            song_sub_name: RustCStringWrapper::new(og.song_sub_name.clone().into()),
             key: RustCStringWrapper::new(og.key.clone().into()),
             diffs: Box::into_raw(Box::new(diff_convert)),
             uploaded: RustCStringWrapper::new(og.uploaded.clone().into()),
             hash: RustCStringWrapper::new(og.hash.clone().into()),
             characteristics: Box::into_raw(Box::new(characteristics_convert)),
+            duration_secs: og.duration_secs,
+            level_author_name: RustCStringWrapper::new(og.level_author_name.clone().into()),
         }
     }
 }
@@ -254,15 +264,24 @@ pub extern "C" fn BeatStarSong_CharacteristicsGetStrKey(
 #[repr(C)]
 pub struct BeatStarSongDifficultyStats {
     pub diff: RustCStringWrapper,
-    pub scores: i64,
-    pub stars: f64,
+    pub stars: f32,
     pub ranked: bool,
     pub njs: f32,
+    pub njs_offset: f32,
     pub bombs: u32,
     pub notes: u32,
     pub obstacles: u32,
     pub char: RustCStringWrapper,
+    pub requirements: *const Vec<RustCStringWrapper>
 }
+
+vec_extern!(
+        BeatStarSongDifficultyStats,
+        requirements,
+        RustCStringWrapper,
+        BeatStarSongDifficultyStats_requirementsGet,
+        BeatStarSongDifficultyStats_requirementsLen
+    );
 
 #[no_mangle]
 pub extern "C" fn BeatStarSongDifficultyStats_DiffCharacteristicsGet(self_i: &BeatStarSongDifficultyStats) -> BeatStarCharacteristics {
@@ -276,9 +295,14 @@ pub extern "C" fn BeatStarSongDifficultyStats_DiffCharacteristicsGet(self_i: &Be
 impl BeatStarSongDifficultyStats {
 
     pub fn convert(og: &BeatStarSongDifficultyStatsJson) -> BeatStarSongDifficultyStats {
+        let mut requirements: Vec<RustCStringWrapper> = vec![];
+
+        for requirement in &og.requirements {
+            requirements.push(RustCStringWrapper::new(requirement.clone().into()))
+        }
+
         BeatStarSongDifficultyStats {
             diff: RustCStringWrapper::new(og.diff.clone().into()),
-            scores: og.scores,
             stars: og.stars,
             ranked: og.ranked,
             njs: og.njs,
@@ -286,6 +310,8 @@ impl BeatStarSongDifficultyStats {
             notes: og.notes,
             obstacles: og.obstacles,
             char: RustCStringWrapper::new(og.char.clone().into()),
+            njs_offset: og.njs_offset,
+            requirements: Box::into_raw(Box::new(requirements)),
         }
     }
 }

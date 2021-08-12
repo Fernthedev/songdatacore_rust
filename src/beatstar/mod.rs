@@ -42,7 +42,8 @@ mod tests {
                 .expect("Could not find song in database")
                 .diffs)[0]
                 .clone();
-            println!("Got the stars: {0} {1}", diff.diff.to_string(), diff.stars)
+            println!("Got the notes!: {0} {1}", diff.diff.to_string(), diff.notes);
+            println!("Got the stars!: {0} {1}", diff.diff.to_string(), diff.stars);
         }
     }
 }

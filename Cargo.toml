@@ -7,12 +7,14 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-ureq = {version = "2.1.0", features = ["json"]} # For HTTP
+ureq = {version = "2.1.1", features = ["json"]} # For HTTP
 cbindgen = "0.18.0" # For creating the C++ binding headers
 serde = "1.0.125" # Parsing JSON
 serde_json = "1.*" # Parsing JSON
 chrono = "0.4" # Time library
 stopwatch = "0.0.7" # I'm lazy
+zip = "0.5.13"
+anyhow = "1.0"
 
 # Enum laziness
 strum = "0.20"
@@ -39,3 +41,4 @@ targets = [
 opt-level = 3
 lto = true
 codegen-units = 1
+strip = "symbols"

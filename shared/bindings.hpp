@@ -38,45 +38,53 @@ struct RustCStringWrapper {
 
 struct BeatStarSongDifficultyStats {
   RustCStringWrapper diff;
-  int64_t scores;
-  double stars;
+  float stars;
   bool ranked;
   float njs;
+  float njs_offset;
   uint32_t bombs;
   uint32_t notes;
   uint32_t obstacles;
   RustCStringWrapper char_;
+  const Vec<RustCStringWrapper> *requirements;
 
   bool operator==(const BeatStarSongDifficultyStats& other) const {
     return diff == other.diff &&
-           scores == other.scores &&
            stars == other.stars &&
            ranked == other.ranked &&
            njs == other.njs &&
+           njs_offset == other.njs_offset &&
            bombs == other.bombs &&
            notes == other.notes &&
            obstacles == other.obstacles &&
-           char_ == other.char_;
+           char_ == other.char_ &&
+           requirements == other.requirements;
   }
   bool operator!=(const BeatStarSongDifficultyStats& other) const {
     return diff != other.diff ||
-           scores != other.scores ||
            stars != other.stars ||
            ranked != other.ranked ||
            njs != other.njs ||
+           njs_offset != other.njs_offset ||
            bombs != other.bombs ||
            notes != other.notes ||
            obstacles != other.obstacles ||
-           char_ != other.char_;
+           char_ != other.char_ ||
+           requirements != other.requirements;
   }
 };
 
 struct BeatStarSong {
   float bpm;
-  uint32_t played_count;
   uint32_t upvotes;
   uint32_t downvotes;
+  uint32_t downloads;
+  uint32_t duration_secs;
   RustCStringWrapper key;
+  RustCStringWrapper song_name;
+  RustCStringWrapper song_sub_name;
+  RustCStringWrapper song_author_name;
+  RustCStringWrapper level_author_name;
   const Vec<BeatStarSongDifficultyStats> *diffs;
   RustCStringWrapper uploaded;
   RustCStringWrapper hash;
@@ -84,10 +92,15 @@ struct BeatStarSong {
 
   bool operator==(const BeatStarSong& other) const {
     return bpm == other.bpm &&
-           played_count == other.played_count &&
            upvotes == other.upvotes &&
            downvotes == other.downvotes &&
+           downloads == other.downloads &&
+           duration_secs == other.duration_secs &&
            key == other.key &&
+           song_name == other.song_name &&
+           song_sub_name == other.song_sub_name &&
+           song_author_name == other.song_author_name &&
+           level_author_name == other.level_author_name &&
            diffs == other.diffs &&
            uploaded == other.uploaded &&
            hash == other.hash &&
@@ -95,10 +108,15 @@ struct BeatStarSong {
   }
   bool operator!=(const BeatStarSong& other) const {
     return bpm != other.bpm ||
-           played_count != other.played_count ||
            upvotes != other.upvotes ||
            downvotes != other.downvotes ||
+           downloads != other.downloads ||
+           duration_secs != other.duration_secs ||
            key != other.key ||
+           song_name != other.song_name ||
+           song_sub_name != other.song_sub_name ||
+           song_author_name != other.song_author_name ||
+           level_author_name != other.level_author_name ||
            diffs != other.diffs ||
            uploaded != other.uploaded ||
            hash != other.hash ||
@@ -174,6 +192,11 @@ const BeatStarSongDifficultyStats *BeatStarSong_CharacteristicStatsGet(const Bea
 const char *BeatStarSong_CharacteristicsGetStrKey(const BeatStarSong *self_i,
                                                   const BeatStarCharacteristics *beat_char,
                                                   uintptr_t index);
+
+const RustCStringWrapper *BeatStarSongDifficultyStats_requirementsGet(const BeatStarSongDifficultyStats *self_i,
+                                                                      uintptr_t index);
+
+uintptr_t BeatStarSongDifficultyStats_requirementsLen(const BeatStarSongDifficultyStats *self_i);
 
 BeatStarCharacteristics BeatStarSongDifficultyStats_DiffCharacteristicsGet(const BeatStarSongDifficultyStats *self_i);
 

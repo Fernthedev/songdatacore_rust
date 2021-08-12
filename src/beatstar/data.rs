@@ -9,17 +9,32 @@ pub struct BeatStarSongJson {
     #[serde(rename = "Bpm")]
     pub bpm: f32,
 
-    #[serde(rename = "PlayedCount")]
-    pub played_count: u32,
-
     #[serde(rename = "Upvotes")]
     pub upvotes: u32,
 
     #[serde(rename = "Downvotes")]
     pub downvotes: u32,
 
+    #[serde(rename = "Downloads")]
+    pub downloads: u32,
+
+    #[serde(rename = "Duration")]
+    pub duration_secs: u32,
+
     #[serde(rename = "Key")]
     pub key: String,
+
+    #[serde(rename = "SongName")]
+    pub song_name: String,
+
+    #[serde(rename = "SongSubName")]
+    pub song_sub_name: String,
+
+    #[serde(rename = "SongAuthorName")]
+    pub song_author_name: String,
+
+    #[serde(rename = "LevelAuthorName")]
+    pub level_author_name: String,
 
     #[serde(rename = "Diffs")]
     pub diffs: Vec<BeatStarSongDifficultyStatsJson>,
@@ -49,10 +64,16 @@ pub enum SongDiffs {
 #[serde(rename_all = "PascalCase")]
 pub struct BeatStarSongDifficultyStatsJson {
     pub diff: String,
-    pub scores: i64,
-    pub stars: f64,
+    #[serde(default)]
+    pub stars: f32,
     pub ranked: bool,
     pub njs: f32,
+
+    #[serde(rename = "NjsOffset")]
+    pub njs_offset: f32,
+
+    pub requirements: Vec<String>,
+
     pub bombs: u32,
     pub notes: u32,
     pub obstacles: u32,

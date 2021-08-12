@@ -5,6 +5,13 @@ project(SongDataCoreRust_CppTest)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release)
+    message("Building release")
+endif()
+
+set(CMAKE_CXX_FLAGS_RELEASE "-O3")
+
 include_directories("../target/release")
 include_directories("../shared/")
 include_directories("./src")

@@ -3,15 +3,18 @@ use crate::beatstar::ffi::{BeatStarDataFile, BeatStarSong, RustCStringWrapper};
 use crate::beatstar::BEAT_STAR_FILE;
 use std::collections::HashMap;
 use std::ffi::CStr;
+use std::io::{Cursor, Read};
 use std::os::raw::c_char;
 use std::ptr;
 use std::time::Duration;
+use anyhow::Context;
+use memmap::MmapOptions;
 use stopwatch::Stopwatch;
 use ureq::{Agent, Response};
 
 extern crate chrono;
 
-pub const SCRAPED_SCORE_SABER_URL: &str = "https://raw.githubusercontent.com/andruzzzhka/BeatSaberScrappedData/master/combinedScrappedData.json";
+pub const SCRAPED_SCORE_SABER_URL: &str = "https://github.com/andruzzzhka/BeatSaberScrappedData/blob/master/combinedScrappedData.zip?raw=true";
 
 const HTTP_OK: u16 = 200;
 
@@ -20,6 +23,33 @@ lazy_static! {
         .timeout_read(Duration::from_secs(5))
         .timeout_write(Duration::from_secs(5))
         .build();
+}
+
+pub fn beatstar_zip_content(response: ureq::Response) -> Result<Vec<BeatStarSongJson>, anyhow::Error>  {
+    assert!(response.has("Content-Length"));
+    let len = response.header("Content-Length")
+    .and_then(|s| s.parse::<usize>().ok()).unwrap();
+
+    let mut bytes: Vec<u8> = Vec::with_capacity(len);
+    response.into_reader()
+        .read_to_end(&mut bytes)?;
+
+
+    let cursor = Cursor::new(&bytes);
+    
+    let mut zip = zip::ZipArchive::new(cursor).unwrap();
+
+    assert!(!zip.is_empty());
+
+    let mut file = zip.by_index(0)?;
+
+    let mut string_buffer = Vec::new();
+
+    file.read_to_end(&mut string_buffer)?;
+
+    let json: Vec<BeatStarSongJson> = serde_json::from_slice(string_buffer.as_slice())?;
+
+    Ok(json)
 }
 
 ///
@@ -38,12 +68,14 @@ pub fn beatstar_update_database() -> Option<Response> {
         );
 
         if response.status() == HTTP_OK {
-            let body: Vec<BeatStarSongJson> = response.into_json().unwrap();
+            let body: Vec<BeatStarSongJson> = beatstar_zip_content(response).context("Failed to parse scrapped beat saver data zip.").unwrap();
             println!(
                 "Parsed beat file into json data in {0}ms",
                 stopwatch.elapsed().as_millis()
             );
 
+
+            // Get data inside zip
             let parsed_data = parse_beatstar(&body);
 
             BEAT_STAR_FILE.get_or_init(|| parsed_data);

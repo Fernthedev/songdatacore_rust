@@ -185,3 +185,4 @@ fabric.properties
 .idea/discord.xml
 .idea/misc.xml
 .idea/vcs.xml
+cpp/.idea/sonarlint/
