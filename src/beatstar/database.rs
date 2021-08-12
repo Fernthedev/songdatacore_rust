@@ -68,8 +68,6 @@ pub fn beatstar_zip_content(response: ureq::Response) -> Result<Vec<BeatStarSong
             let char_map  = characteristics.entry(char.unwrap()).or_insert_with(DiffMap::new);
 
             char_map.insert(diff.diff.clone(), diff.clone());
-
-            println!("Got characteristics {:?}", characteristics);
         }
 
         song.characteristics = characteristics;
