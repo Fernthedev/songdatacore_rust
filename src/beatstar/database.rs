@@ -10,6 +10,7 @@ use std::str::FromStr;
 use std::time::Duration;
 use anyhow::Context;
 use stopwatch::Stopwatch;
+use tracing::{Level, event, span};
 use ureq::{Agent, Response};
 
 extern crate chrono;
@@ -76,6 +77,16 @@ pub fn beatstar_zip_content(response: ureq::Response) -> Result<Vec<BeatStarSong
     Ok(json)
 }
 
+#[cfg(target_os = "android")]
+fn initialize_log() {
+    tracing_android::init(env!("CARGO_PKG_NAME"));
+}
+
+#[cfg(not(target_os = "android"))]
+fn initialize_log() {
+    tracing_subscriber::fmt::init();
+}
+
 ///
 /// Returns None unless error, in which you get the response
 ///
@@ -83,17 +94,23 @@ pub fn beatstar_zip_content(response: ureq::Response) -> Result<Vec<BeatStarSong
 ///
 pub fn beatstar_update_database() -> Option<Response> {
     if BEAT_STAR_FILE.get().is_none() {
-        println!("Fetching from internet");
+
+        initialize_log();
+
+        let span = span!(Level::TRACE, "beatstar_database_update");
+        let _guard = span.enter();
+
+        event!(Level::INFO, "Fetching from internet");
         let mut stopwatch = Stopwatch::start_new();
         let response = AGENT.get(SCRAPED_SCORE_SABER_URL).call().unwrap();
-        println!(
+        event!(Level::INFO, 
             "Received data from internet in {0}ms",
             stopwatch.elapsed().as_millis()
         );
 
         if response.status() == HTTP_OK {
             let body: Vec<BeatStarSongJson> = beatstar_zip_content(response).context("Failed to parse scrapped beat saver data zip.").unwrap();
-            println!(
+            event!(Level::INFO,
                 "Parsed beat file into json data in {0}ms",
                 stopwatch.elapsed().as_millis()
             );
@@ -104,7 +121,8 @@ pub fn beatstar_update_database() -> Option<Response> {
 
             BEAT_STAR_FILE.get_or_init(|| parsed_data);
 
-            println!(
+            event!(
+                Level::INFO,
                 "Fully parsed beat file in {0}ms",
                 stopwatch.elapsed().as_millis()
             );
