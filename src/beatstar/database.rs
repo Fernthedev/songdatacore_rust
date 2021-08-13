@@ -1,6 +1,9 @@
-use crate::beatstar::data::{BeatStarCharacteristics, BeatStarSongDifficultyStatsJson, BeatStarSongJson};
+use crate::beatstar::data::{
+    BeatStarCharacteristics, BeatStarSongDifficultyStatsJson, BeatStarSongJson,
+};
 use crate::beatstar::ffi::{BeatStarDataFile, BeatStarSong, RustCStringWrapper};
 use crate::beatstar::BEAT_STAR_FILE;
+use anyhow::Context;
 use std::collections::HashMap;
 use std::ffi::CStr;
 use std::io::{Cursor, Read};
@@ -8,9 +11,8 @@ use std::os::raw::c_char;
 use std::ptr;
 use std::str::FromStr;
 use std::time::Duration;
-use anyhow::Context;
 use stopwatch::Stopwatch;
-use tracing::{Level, event, span};
+use tracing::{event, span, Level};
 use ureq::{Agent, Response};
 
 extern crate chrono;
@@ -26,18 +28,20 @@ lazy_static! {
         .build();
 }
 
-pub fn beatstar_zip_content(response: ureq::Response) -> Result<Vec<BeatStarSongJson>, anyhow::Error>  {
+pub fn beatstar_zip_content(
+    response: ureq::Response,
+) -> Result<Vec<BeatStarSongJson>, anyhow::Error> {
     assert!(response.has("Content-Length"));
-    let len = response.header("Content-Length")
-    .and_then(|s| s.parse::<usize>().ok()).unwrap();
+    let len = response
+        .header("Content-Length")
+        .and_then(|s| s.parse::<usize>().ok())
+        .unwrap();
 
     let mut bytes: Vec<u8> = Vec::with_capacity(len);
-    response.into_reader()
-        .read_to_end(&mut bytes)?;
-
+    response.into_reader().read_to_end(&mut bytes)?;
 
     let cursor = Cursor::new(&bytes);
-    
+
     let mut zip = zip::ZipArchive::new(cursor).unwrap();
 
     assert!(!zip.is_empty());
@@ -51,12 +55,9 @@ pub fn beatstar_zip_content(response: ureq::Response) -> Result<Vec<BeatStarSong
     let mut json: Vec<BeatStarSongJson> = serde_json::from_slice(string_buffer.as_slice())?;
 
     for song in &mut json {
-        
         type DiffMap = HashMap<String, BeatStarSongDifficultyStatsJson>;
 
         let mut characteristics: HashMap<BeatStarCharacteristics, DiffMap> = HashMap::new();
-
-
 
         'diffLoop: for diff in &song.diffs {
             let char = BeatStarCharacteristics::from_str(diff.char.as_str());
@@ -64,15 +65,16 @@ pub fn beatstar_zip_content(response: ureq::Response) -> Result<Vec<BeatStarSong
             if char.is_err() {
                 continue 'diffLoop;
             }
-            
 
-            let char_map  = characteristics.entry(char.unwrap()).or_insert_with(DiffMap::new);
+            let char_map = characteristics
+                .entry(char.unwrap())
+                .or_insert_with(DiffMap::new);
 
             char_map.insert(diff.diff.clone(), diff.clone());
         }
 
         song.characteristics = characteristics;
-    };
+    }
 
     Ok(json)
 }
@@ -94,7 +96,6 @@ fn initialize_log() {
 ///
 pub fn beatstar_update_database() -> Option<Response> {
     if BEAT_STAR_FILE.get().is_none() {
-
         initialize_log();
 
         let span = span!(Level::TRACE, "beatstar_database_update");
@@ -103,20 +104,23 @@ pub fn beatstar_update_database() -> Option<Response> {
         event!(Level::INFO, "Fetching from internet");
         let mut stopwatch = Stopwatch::start_new();
         let response = AGENT.get(SCRAPED_SCORE_SABER_URL).call().unwrap();
-        event!(Level::INFO, 
+        event!(
+            Level::INFO,
             "Received data from internet in {0}ms",
             stopwatch.elapsed().as_millis()
         );
 
         if response.status() == HTTP_OK {
-            let body: Vec<BeatStarSongJson> = beatstar_zip_content(response).context("Failed to parse scrapped beat saver data zip.").unwrap();
-            event!(Level::INFO,
+            let body: Vec<BeatStarSongJson> = beatstar_zip_content(response)
+                .context("Failed to parse scrapped beat saver data zip.")
+                .unwrap();
+            event!(
+                Level::INFO,
                 "Parsed beat file into json data in {0}ms",
                 stopwatch.elapsed().as_millis()
             );
 
-
-            // Get data inside zip
+            // Get data inside file and map it
             let parsed_data = parse_beatstar(&body);
 
             BEAT_STAR_FILE.get_or_init(|| parsed_data);
@@ -198,18 +202,18 @@ pub unsafe extern "C" fn Beatstar_GetSong(hash: *const c_char) -> *const BeatSta
 pub fn beatstar_get_song(hash: &str) -> Result<Option<&BeatStarSong>, Response> {
     unsafe {
         return match beatstar_update_database() {
-            None => Ok((*BEAT_STAR_FILE
-                .get()
-                .unwrap()
-                .songs)
-                .get(&RustCStringWrapper::new(hash.into()))),
+            None => {
+                // Get songs map
+                Ok((*BEAT_STAR_FILE.get().unwrap().songs)
+                    .get(&RustCStringWrapper::new(hash.into())))
+            }
             Some(e) => Err(e),
         };
     }
 }
 
 ///
-/// Parses the entire JSON
+/// Parses the entire JSON to FFI friendly types
 /// This takes an average of 700 MS, do better?
 ///
 fn parse_beatstar(songs: &[BeatStarSongJson]) -> BeatStarDataFile {
@@ -225,5 +229,7 @@ fn parse_beatstar(songs: &[BeatStarSongJson]) -> BeatStarDataFile {
         song_map.insert(song.hash.clone(), song);
     }
 
-    BeatStarDataFile { songs: Box::into_raw(Box::new(song_map)) }
+    BeatStarDataFile {
+        songs: Box::into_raw(Box::new(song_map)),
+    }
 }
