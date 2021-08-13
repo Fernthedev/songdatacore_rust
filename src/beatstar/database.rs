@@ -10,6 +10,7 @@ use std::io::{Cursor, Read};
 use std::os::raw::c_char;
 use std::ptr;
 use std::str::FromStr;
+use std::sync::Once;
 use std::time::Duration;
 use stopwatch::Stopwatch;
 use tracing::{event, span, Level};
@@ -79,14 +80,20 @@ pub fn beatstar_zip_content(
     Ok(json)
 }
 
+static INIT_LOG: Once = Once::new();
+
 #[cfg(target_os = "android")]
 fn initialize_log() {
-    tracing_android::init(env!("CARGO_PKG_NAME"));
+    INIT_LOG.call_once(|| {
+        tracing_android::init(env!("CARGO_PKG_NAME"));
+    });
 }
 
 #[cfg(not(target_os = "android"))]
 fn initialize_log() {
-    tracing_subscriber::fmt::init();
+    INIT_LOG.call_once(|| {
+        tracing_subscriber::fmt::init();
+    });
 }
 
 ///
