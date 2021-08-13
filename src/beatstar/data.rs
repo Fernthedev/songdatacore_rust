@@ -79,6 +79,9 @@ pub struct BeatStarSongDifficultyStatsJson {
     pub obstacles: u32,
     #[serde(rename = "Char")]
     pub char: String,
+
+    #[serde(skip_deserializing)]
+    pub approximate_pp_value: f32,
 }
 
 #[repr(C)]

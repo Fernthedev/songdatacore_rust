@@ -29,6 +29,15 @@ lazy_static! {
         .build();
 }
 
+fn calculate_pp(diff: &BeatStarSongDifficultyStatsJson) -> f32 {
+    if diff.stars <= 0.05 || !diff.ranked {
+        return 0.0;
+    }
+
+
+    diff.stars * (45.0 + ((10.0 - diff.stars) / 7.0))
+}
+
 pub fn beatstar_zip_content(
     response: ureq::Response,
 ) -> Result<Vec<BeatStarSongJson>, anyhow::Error> {
@@ -60,7 +69,7 @@ pub fn beatstar_zip_content(
 
         let mut characteristics: HashMap<BeatStarCharacteristics, DiffMap> = HashMap::new();
 
-        'diffLoop: for diff in &song.diffs {
+        'diffLoop: for diff in &mut song.diffs {
             let char = BeatStarCharacteristics::from_str(diff.char.as_str());
 
             if char.is_err() {
@@ -72,6 +81,8 @@ pub fn beatstar_zip_content(
                 .or_insert_with(DiffMap::new);
 
             char_map.insert(diff.diff.clone(), diff.clone());
+
+            diff.approximate_pp_value = calculate_pp(diff);
         }
 
         song.characteristics = characteristics;

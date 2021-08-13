@@ -264,6 +264,7 @@ pub extern "C" fn BeatStarSong_CharacteristicsGetStrKey(
 #[repr(C)]
 pub struct BeatStarSongDifficultyStats {
     pub diff: RustCStringWrapper,
+    pub approximate_pp_value: f32,
     pub stars: f32,
     pub ranked: bool,
     pub njs: f32,
@@ -312,6 +313,7 @@ impl BeatStarSongDifficultyStats {
             char: RustCStringWrapper::new(og.char.clone().into()),
             njs_offset: og.njs_offset,
             requirements: Box::into_raw(Box::new(requirements)),
+            approximate_pp_value: og.approximate_pp_value,
         }
     }
 }
