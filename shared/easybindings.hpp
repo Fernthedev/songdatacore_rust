@@ -8,16 +8,15 @@
 namespace song_data_core
 {
 
-    std::future<const BeatStarDataFile *> loadDatabaseAsync()
+    std::promise<const BeatStarDataFile *> loadDatabaseAsync()
     {
-        std::packaged_task<const BeatStarDataFile *()> asyncTask([]
-                                                                 { return Beatstar_RetrieveDatabase(); });
-        std::future<const BeatStarDataFile *> future = asyncTask.get_future();
+        std::promise<const BeatStarDataFile *> promise;
 
-        std::thread t(std::move(future));
+        std::thread t([&]
+                      { promise.set_value(Beatstar_RetrieveDatabase()); });
         t.detach();
 
-        return future;
+        return promise;
     }
 
     template <typename K = void, typename V = void, typename Hasher = void>
