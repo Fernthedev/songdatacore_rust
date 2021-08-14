@@ -80,9 +80,10 @@ pub fn beatstar_zip_content(
                 .entry(char.unwrap())
                 .or_insert_with(DiffMap::new);
 
-            char_map.insert(diff.diff.clone(), diff.clone());
 
             diff.approximate_pp_value = calculate_pp(diff);
+
+            char_map.insert(diff.diff.clone(), diff.clone());
         }
 
         song.characteristics = characteristics;
