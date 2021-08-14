@@ -47,6 +47,7 @@ struct BeatStarSongDifficultyStats {
   uint32_t notes;
   uint32_t obstacles;
   RustCStringWrapper char_;
+  BeatStarCharacteristics diff_characteristics;
   const Vec<RustCStringWrapper> *requirements;
 
   bool operator==(const BeatStarSongDifficultyStats& other) const {
@@ -60,6 +61,7 @@ struct BeatStarSongDifficultyStats {
            notes == other.notes &&
            obstacles == other.obstacles &&
            char_ == other.char_ &&
+           diff_characteristics == other.diff_characteristics &&
            requirements == other.requirements;
   }
   bool operator!=(const BeatStarSongDifficultyStats& other) const {
@@ -73,6 +75,7 @@ struct BeatStarSongDifficultyStats {
            notes != other.notes ||
            obstacles != other.obstacles ||
            char_ != other.char_ ||
+           diff_characteristics != other.diff_characteristics ||
            requirements != other.requirements;
   }
 };
@@ -183,8 +186,8 @@ uintptr_t BeatStarSong_DiffLen(const BeatStarSong *self_i);
 ///
 /// Get the value in the hashmap from the key
 ///
-const HashMap<RustCStringWrapper, BeatStarSongDifficultyStats> *BeatStarSong_map_CharacteristicsGet(const BeatStarSong *self_i,
-                                                                                                    const BeatStarCharacteristics *index);
+const HashMap<RustCStringWrapper, BeatStarSongDifficultyStats> *useless_BeatStarSong_map_CharacteristicsGet(const BeatStarSong *self_i,
+                                                                                                            const BeatStarCharacteristics *index);
 
 ///
 /// Get the key in the hashmap from the index in it's set.
@@ -200,22 +203,22 @@ uintptr_t BeatStarSong_map_CharacteristicsLen(const BeatStarSong *self_i);
 ///
 /// Gets the size of the hashmap of the characteristics
 ///
-uintptr_t BeatStarSong_CharacteristicDifficultyLen(const BeatStarSong *self_i,
-                                                   const BeatStarCharacteristics *beat_char);
+uintptr_t BeatStarSong_map_Characteristics_DifficultyStatsLen(const BeatStarSong *self_i,
+                                                              const BeatStarCharacteristics *beat_char);
 
 ///
 /// Gets the difficulty stats based on the characteristic key + difficulty key
 ///
-const BeatStarSongDifficultyStats *BeatStarSong_CharacteristicStatsGet(const BeatStarSong *self_i,
-                                                                       const BeatStarCharacteristics *beat_char,
-                                                                       char *beat_key2);
+const BeatStarSongDifficultyStats *BeatStarSong_map_Characteristics_DifficultyStatsGet(const BeatStarSong *self_i,
+                                                                                       const BeatStarCharacteristics *beat_char,
+                                                                                       const char *beat_key2);
 
 ///
 /// Gets the key based on the index, converted to a string.
 ///
-const char *BeatStarSong_CharacteristicsGetStrKey(const BeatStarSong *self_i,
-                                                  const BeatStarCharacteristics *beat_char,
-                                                  uintptr_t index);
+const char *BeatStarSong_map_Characteristics_DifficultyStatsGetStrKey(const BeatStarSong *self_i,
+                                                                      const BeatStarCharacteristics *beat_char,
+                                                                      uintptr_t index);
 
 /// Gets the item in the vector from index
 const RustCStringWrapper *BeatStarSongDifficultyStats_requirementsGet(const BeatStarSongDifficultyStats *self_i,
@@ -223,9 +226,6 @@ const RustCStringWrapper *BeatStarSongDifficultyStats_requirementsGet(const Beat
 
 /// Gets the length of the vector
 uintptr_t BeatStarSongDifficultyStats_requirementsLen(const BeatStarSongDifficultyStats *self_i);
-
-/// Gets the BeatStarCharacteristics enum value from the BeatStarSongDifficultyStats
-BeatStarCharacteristics BeatStarSongDifficultyStats_DiffCharacteristicsGet(const BeatStarSongDifficultyStats *self_i);
 
 } // extern "C"
 

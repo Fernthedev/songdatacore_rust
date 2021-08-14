@@ -86,14 +86,14 @@ impl RustCStringWrapper {
         RustCStringWrapper { string_data: ptr }
     }
 
-    fn from_copy(c_str: *mut c_char) -> Self {
+    fn from_copy(c_str: *const c_char) -> Self {
         unsafe {
-            let oldString = CString::from_raw(c_str);
-            let newString = oldString.clone();
-            oldString.into_raw();
-            return RustCStringWrapper {
-                string_data: newString.into_raw(),
-            };
+            
+            let old_string = CStr::from_ptr(c_str);
+            let new_string = CString::new(old_string.to_string_lossy().to_string()).expect("Unable to create a new C String from a C string");
+            RustCStringWrapper {
+                string_data: new_string.into_raw(),
+            }
         }
     }
 }
@@ -101,9 +101,9 @@ impl RustCStringWrapper {
 impl From<*mut c_char> for RustCStringWrapper {
     fn from(c_str: *mut c_char) -> Self {
         unsafe {
-            return RustCStringWrapper {
+            RustCStringWrapper {
                 string_data: CString::from_raw(c_str).into_raw(),
-            };
+            }
         }
     }
 }
@@ -212,7 +212,7 @@ vec_extern!(
     BeatStarSong_DiffLen
 );
 map_extern!(BeatStarSong, characteristics, BeatStarCharacteristics, HashMap<RustCStringWrapper, BeatStarSongDifficultyStats>,
-    BeatStarSong_map_CharacteristicsGet,
+    useless_BeatStarSong_map_CharacteristicsGet,
     BeatStarSong_map_CharacteristicsLen,
     BeatStarSong_map_CharacteristicsKeyGet);
 
@@ -220,7 +220,7 @@ map_extern!(BeatStarSong, characteristics, BeatStarCharacteristics, HashMap<Rust
 /// Gets the size of the hashmap of the characteristics
 ///
 #[no_mangle]
-pub extern "C" fn BeatStarSong_CharacteristicDifficultyLen(
+pub extern "C" fn BeatStarSong_map_Characteristics_DifficultyStatsLen(
     self_i: &BeatStarSong,
     beat_char: &BeatStarCharacteristics,
 ) -> usize {
@@ -236,17 +236,12 @@ pub extern "C" fn BeatStarSong_CharacteristicDifficultyLen(
 /// Gets the difficulty stats based on the characteristic key + difficulty key
 ///
 #[no_mangle]
-pub extern "C" fn BeatStarSong_CharacteristicStatsGet(
+pub extern "C" fn BeatStarSong_map_Characteristics_DifficultyStatsGet(
     self_i: &BeatStarSong,
     beat_char: &BeatStarCharacteristics,
-    beat_key2: *mut c_char,
+    beat_key2: *const c_char,
 ) -> *const BeatStarSongDifficultyStats {
     unsafe {
-        // let len = CStr::strlen(beat_key2) + 1; // Including the NUL byte
-
-        // let copy_str = vec![0, len].as_mut_ptr();
-        // beat_key2.copy_to(copy_str, len);
-
         return match (*self_i.characteristics).get(beat_char) {
             Some(map) => match map.get(&RustCStringWrapper::from_copy(beat_key2)) {
                 None => ptr::null(),
@@ -261,7 +256,7 @@ pub extern "C" fn BeatStarSong_CharacteristicStatsGet(
 /// Gets the key based on the index, converted to a string.
 ///
 #[no_mangle]
-pub extern "C" fn BeatStarSong_CharacteristicsGetStrKey(
+pub extern "C" fn BeatStarSong_map_Characteristics_DifficultyStatsGetStrKey(
     self_i: &BeatStarSong,
     beat_char: &BeatStarCharacteristics,
     index: usize,
@@ -296,6 +291,7 @@ pub struct BeatStarSongDifficultyStats {
     pub notes: u32,
     pub obstacles: u32,
     pub char: RustCStringWrapper,
+    pub diff_characteristics: BeatStarCharacteristics,
     pub requirements: *const Vec<RustCStringWrapper>,
 }
 
@@ -307,17 +303,6 @@ vec_extern!(
     BeatStarSongDifficultyStats_requirementsLen
 );
 
-/// Gets the BeatStarCharacteristics enum value from the BeatStarSongDifficultyStats
-#[no_mangle]
-pub extern "C" fn BeatStarSongDifficultyStats_DiffCharacteristicsGet(
-    self_i: &BeatStarSongDifficultyStats,
-) -> BeatStarCharacteristics {
-    return match BeatStarCharacteristics::from_str(self_i.char.to_string().as_str()) {
-        Ok(e) => e,
-        Err(_) => BeatStarCharacteristics::Unknown,
-    };
-}
-
 impl BeatStarSongDifficultyStats {
     pub fn convert(og: &BeatStarSongDifficultyStatsJson) -> BeatStarSongDifficultyStats {
         let mut requirements: Vec<RustCStringWrapper> = vec![];
@@ -325,6 +310,11 @@ impl BeatStarSongDifficultyStats {
         for requirement in &og.requirements {
             requirements.push(RustCStringWrapper::new(requirement.clone().into()))
         }
+
+        let characteristic_enum = match BeatStarCharacteristics::from_str(og.char.as_str()) {
+            Ok(e) => e,
+            Err(_) => BeatStarCharacteristics::Unknown,
+        };
 
         BeatStarSongDifficultyStats {
             diff: RustCStringWrapper::new(og.diff.clone().into()),
@@ -338,6 +328,7 @@ impl BeatStarSongDifficultyStats {
             njs_offset: og.njs_offset,
             requirements: Box::into_raw(Box::new(requirements)),
             approximate_pp_value: og.approximate_pp_value,
+            diff_characteristics: characteristic_enum,
         }
     }
 }
