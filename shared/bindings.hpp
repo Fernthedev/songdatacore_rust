@@ -151,9 +151,6 @@ const BeatStarDataFile *Beatstar_RetrieveDatabase();
 ///
 const BeatStarSong *Beatstar_GetSong(const char *hash);
 
-/// Creates a new RustCStringWrapper from a C char*
-RustCStringWrapper RustCStringWrapper_c_new(char *c_str);
-
 ///
 /// Get the value in the hashmap from the key
 ///

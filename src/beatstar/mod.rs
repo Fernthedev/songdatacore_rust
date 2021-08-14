@@ -46,4 +46,27 @@ mod tests {
             println!("Got the stars!: {0} {1}", diff.diff.to_string(), diff.stars);
         }
     }
+
+        #[test]
+    fn get_song_characteristics() {
+        download_db();
+        // assert_eq!(2 + 2, 4);
+
+        let song = beatstar_get_song("B9BED84A127130BF80AFF18DB677EDD215CE0AB5").unwrap().unwrap();
+
+        for i in 0..3 {
+        unsafe {
+            let diffMapSize =  (&song).characteristics.as_ref().unwrap().len();
+            println!("Characteristics size: {0}", diffMapSize);
+            assert_eq!(diffMapSize, 2);
+            for (chara, diffMap) in &*(&song).characteristics {
+                println!("Got the char!: {0} {1}", chara.to_string(), diffMap.len());
+
+                for (diffName, diff) in &*diffMap {
+                    println!("Got the diff!: {0}", diff.diff.to_string());
+                }
+            }
+        }
+    }
+    }
 }

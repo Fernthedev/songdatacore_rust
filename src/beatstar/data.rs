@@ -98,6 +98,14 @@ pub enum BeatStarCharacteristics {
     Lawless,
 }
 
+impl std::fmt::Display for BeatStarCharacteristics {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+        // or, alternatively:
+        // fmt::Debug::fmt(self, f)
+    }
+}
+
 
 impl FromStr for BeatStarCharacteristics {
     type Err = ();

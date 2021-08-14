@@ -15,8 +15,8 @@ use crate::beatstar::data::{
 use std::borrow::Borrow;
 use std::collections::HashMap;
 use std::ffi::{CStr, CString};
+use std::ptr;
 use std::str::FromStr;
-use std::{ptr};
 
 #[derive(Eq)]
 #[repr(C)]
@@ -85,14 +85,25 @@ impl RustCStringWrapper {
         let ptr = c_string.into_raw();
         RustCStringWrapper { string_data: ptr }
     }
+
+    fn from_copy(c_str: *mut c_char) -> Self {
+        unsafe {
+            let oldString = CString::from_raw(c_str);
+            let newString = oldString.clone();
+            oldString.into_raw();
+            return RustCStringWrapper {
+                string_data: newString.into_raw(),
+            };
+        }
+    }
 }
 
-/// Creates a new RustCStringWrapper from a C char*
-#[no_mangle]
-pub extern "C" fn RustCStringWrapper_c_new(c_str: *mut c_char) -> RustCStringWrapper {
-    unsafe {
-        RustCStringWrapper {
-            string_data: CString::from_raw(c_str).into_raw(),
+impl From<*mut c_char> for RustCStringWrapper {
+    fn from(c_str: *mut c_char) -> Self {
+        unsafe {
+            return RustCStringWrapper {
+                string_data: CString::from_raw(c_str).into_raw(),
+            };
         }
     }
 }
@@ -106,14 +117,14 @@ unsafe impl Send for BeatStarDataFile {}
 unsafe impl Sync for BeatStarDataFile {}
 
 map_extern!(
-        BeatStarDataFile,
-        songs,
-        RustCStringWrapper,
-        BeatStarSong,
-        BeatStarDataFile_map_SongsGet,
-        BeatStarDataFile_map_SongsLen,
-        BeatStarDataFile_map_SongsGetKey
-    );
+    BeatStarDataFile,
+    songs,
+    RustCStringWrapper,
+    BeatStarSong,
+    BeatStarDataFile_map_SongsGet,
+    BeatStarDataFile_map_SongsLen,
+    BeatStarDataFile_map_SongsGetKey
+);
 
 #[repr(C)]
 pub struct BeatStarSong {
@@ -130,12 +141,13 @@ pub struct BeatStarSong {
     pub diffs: *const Vec<BeatStarSongDifficultyStats>,
     pub uploaded: RustCStringWrapper,
     pub hash: RustCStringWrapper,
-    pub characteristics:
-        *const HashMap<BeatStarCharacteristics, HashMap<RustCStringWrapper, BeatStarSongDifficultyStats>>,
+    pub characteristics: *const HashMap<
+        BeatStarCharacteristics,
+        HashMap<RustCStringWrapper, BeatStarSongDifficultyStats>,
+    >,
 }
 
 impl BeatStarSong {
-
     pub fn convert(og: &BeatStarSongJson) -> BeatStarSong {
         let mut diff_convert: Vec<BeatStarSongDifficultyStats> = vec![];
 
@@ -181,7 +193,7 @@ impl BeatStarSong {
     }
 }
 
-/// 
+///
 /// An algorithm for getting a song's rating.
 ///
 #[no_mangle]
@@ -193,23 +205,25 @@ pub extern "C" fn BeatStarSong_rating(self_i: &BeatStarSong) -> f32 {
 }
 
 vec_extern!(
-        BeatStarSong,
-        diffs,
-        BeatStarSongDifficultyStats,
-        BeatStarSong_DiffGet,
-        BeatStarSong_DiffLen
-    );
+    BeatStarSong,
+    diffs,
+    BeatStarSongDifficultyStats,
+    BeatStarSong_DiffGet,
+    BeatStarSong_DiffLen
+);
 map_extern!(BeatStarSong, characteristics, BeatStarCharacteristics, HashMap<RustCStringWrapper, BeatStarSongDifficultyStats>,
     BeatStarSong_map_CharacteristicsGet,
     BeatStarSong_map_CharacteristicsLen,
     BeatStarSong_map_CharacteristicsKeyGet);
 
-
 ///
 /// Gets the size of the hashmap of the characteristics
 ///
 #[no_mangle]
-pub extern "C" fn BeatStarSong_CharacteristicDifficultyLen(self_i: &BeatStarSong, beat_char: &BeatStarCharacteristics) -> usize {
+pub extern "C" fn BeatStarSong_CharacteristicDifficultyLen(
+    self_i: &BeatStarSong,
+    beat_char: &BeatStarCharacteristics,
+) -> usize {
     unsafe {
         return match (*self_i.characteristics).get(beat_char) {
             None => 0,
@@ -228,8 +242,13 @@ pub extern "C" fn BeatStarSong_CharacteristicStatsGet(
     beat_key2: *mut c_char,
 ) -> *const BeatStarSongDifficultyStats {
     unsafe {
+        // let len = CStr::strlen(beat_key2) + 1; // Including the NUL byte
+
+        // let copy_str = vec![0, len].as_mut_ptr();
+        // beat_key2.copy_to(copy_str, len);
+
         return match (*self_i.characteristics).get(beat_char) {
-            Some(map) => match map.get(&RustCStringWrapper_c_new(beat_key2)) {
+            Some(map) => match map.get(&RustCStringWrapper::from_copy(beat_key2)) {
                 None => ptr::null(),
                 Some(e) => e,
             },
@@ -277,29 +296,29 @@ pub struct BeatStarSongDifficultyStats {
     pub notes: u32,
     pub obstacles: u32,
     pub char: RustCStringWrapper,
-    pub requirements: *const Vec<RustCStringWrapper>
+    pub requirements: *const Vec<RustCStringWrapper>,
 }
 
 vec_extern!(
-        BeatStarSongDifficultyStats,
-        requirements,
-        RustCStringWrapper,
-        BeatStarSongDifficultyStats_requirementsGet,
-        BeatStarSongDifficultyStats_requirementsLen
-    );
+    BeatStarSongDifficultyStats,
+    requirements,
+    RustCStringWrapper,
+    BeatStarSongDifficultyStats_requirementsGet,
+    BeatStarSongDifficultyStats_requirementsLen
+);
 
 /// Gets the BeatStarCharacteristics enum value from the BeatStarSongDifficultyStats
 #[no_mangle]
-pub extern "C" fn BeatStarSongDifficultyStats_DiffCharacteristicsGet(self_i: &BeatStarSongDifficultyStats) -> BeatStarCharacteristics {
+pub extern "C" fn BeatStarSongDifficultyStats_DiffCharacteristicsGet(
+    self_i: &BeatStarSongDifficultyStats,
+) -> BeatStarCharacteristics {
     return match BeatStarCharacteristics::from_str(self_i.char.to_string().as_str()) {
         Ok(e) => e,
         Err(_) => BeatStarCharacteristics::Unknown,
     };
 }
 
-
 impl BeatStarSongDifficultyStats {
-
     pub fn convert(og: &BeatStarSongDifficultyStatsJson) -> BeatStarSongDifficultyStats {
         let mut requirements: Vec<RustCStringWrapper> = vec![];
 
