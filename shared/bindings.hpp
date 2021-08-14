@@ -38,6 +38,7 @@ struct RustCStringWrapper {
 
 struct BeatStarSongDifficultyStats {
   RustCStringWrapper diff;
+  float approximate_pp_value;
   float stars;
   bool ranked;
   float njs;
@@ -50,6 +51,7 @@ struct BeatStarSongDifficultyStats {
 
   bool operator==(const BeatStarSongDifficultyStats& other) const {
     return diff == other.diff &&
+           approximate_pp_value == other.approximate_pp_value &&
            stars == other.stars &&
            ranked == other.ranked &&
            njs == other.njs &&
@@ -62,6 +64,7 @@ struct BeatStarSongDifficultyStats {
   }
   bool operator!=(const BeatStarSongDifficultyStats& other) const {
     return diff != other.diff ||
+           approximate_pp_value != other.approximate_pp_value ||
            stars != other.stars ||
            ranked != other.ranked ||
            njs != other.njs ||
@@ -148,29 +151,53 @@ const BeatStarDataFile *Beatstar_RetrieveDatabase();
 ///
 const BeatStarSong *Beatstar_GetSong(const char *hash);
 
+/// Creates a new RustCStringWrapper from a C char*
 RustCStringWrapper RustCStringWrapper_c_new(char *c_str);
 
+///
+/// Get the value in the hashmap from the key
+///
 const BeatStarSong *BeatStarDataFile_map_SongsGet(const BeatStarDataFile *self_i,
                                                   const RustCStringWrapper *index);
 
+///
+/// Get the key in the hashmap from the index in it's set.
+///
 const RustCStringWrapper *BeatStarDataFile_map_SongsGetKey(const BeatStarDataFile *self_i,
                                                            uintptr_t index);
 
+///
+/// Get the length of the hashmap
+///
 uintptr_t BeatStarDataFile_map_SongsLen(const BeatStarDataFile *self_i);
 
+///
+/// An algorithm for getting a song's rating.
+///
 float BeatStarSong_rating(const BeatStarSong *self_i);
 
+/// Gets the item in the vector from index
 const BeatStarSongDifficultyStats *BeatStarSong_DiffGet(const BeatStarSong *self_i,
                                                         uintptr_t index);
 
+/// Gets the length of the vector
 uintptr_t BeatStarSong_DiffLen(const BeatStarSong *self_i);
 
+///
+/// Get the value in the hashmap from the key
+///
 const HashMap<RustCStringWrapper, BeatStarSongDifficultyStats> *BeatStarSong_map_CharacteristicsGet(const BeatStarSong *self_i,
                                                                                                     const BeatStarCharacteristics *index);
 
+///
+/// Get the key in the hashmap from the index in it's set.
+///
 const BeatStarCharacteristics *BeatStarSong_map_CharacteristicsKeyGet(const BeatStarSong *self_i,
                                                                       uintptr_t index);
 
+///
+/// Get the length of the hashmap
+///
 uintptr_t BeatStarSong_map_CharacteristicsLen(const BeatStarSong *self_i);
 
 ///
@@ -193,11 +220,14 @@ const char *BeatStarSong_CharacteristicsGetStrKey(const BeatStarSong *self_i,
                                                   const BeatStarCharacteristics *beat_char,
                                                   uintptr_t index);
 
+/// Gets the item in the vector from index
 const RustCStringWrapper *BeatStarSongDifficultyStats_requirementsGet(const BeatStarSongDifficultyStats *self_i,
                                                                       uintptr_t index);
 
+/// Gets the length of the vector
 uintptr_t BeatStarSongDifficultyStats_requirementsLen(const BeatStarSongDifficultyStats *self_i);
 
+/// Gets the BeatStarCharacteristics enum value from the BeatStarSongDifficultyStats
 BeatStarCharacteristics BeatStarSongDifficultyStats_DiffCharacteristicsGet(const BeatStarSongDifficultyStats *self_i);
 
 } // extern "C"

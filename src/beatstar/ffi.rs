@@ -87,6 +87,7 @@ impl RustCStringWrapper {
     }
 }
 
+/// Creates a new RustCStringWrapper from a C char*
 #[no_mangle]
 pub extern "C" fn RustCStringWrapper_c_new(c_str: *mut c_char) -> RustCStringWrapper {
     unsafe {
@@ -180,6 +181,9 @@ impl BeatStarSong {
     }
 }
 
+/// 
+/// An algorithm for getting a song's rating.
+///
 #[no_mangle]
 pub extern "C" fn BeatStarSong_rating(self_i: &BeatStarSong) -> f32 {
     let tot: f32 = (self_i.upvotes + self_i.downvotes) as f32;
@@ -284,6 +288,7 @@ vec_extern!(
         BeatStarSongDifficultyStats_requirementsLen
     );
 
+/// Gets the BeatStarCharacteristics enum value from the BeatStarSongDifficultyStats
 #[no_mangle]
 pub extern "C" fn BeatStarSongDifficultyStats_DiffCharacteristicsGet(self_i: &BeatStarSongDifficultyStats) -> BeatStarCharacteristics {
     return match BeatStarCharacteristics::from_str(self_i.char.to_string().as_str()) {
