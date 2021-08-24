@@ -5,10 +5,7 @@ use crate::beatstar::ffi::{BeatStarDataFile, BeatStarSong, RustCStringWrapper};
 use crate::beatstar::BEAT_STAR_FILE;
 use anyhow::Context;
 use std::collections::HashMap;
-use std::ffi::CStr;
 use std::io::{Cursor, Read};
-use std::os::raw::c_char;
-use std::ptr;
 use std::str::FromStr;
 use std::sync::Once;
 use std::time::Duration;
@@ -95,14 +92,14 @@ pub fn beatstar_zip_content(
 static INIT_LOG: Once = Once::new();
 
 #[cfg(target_os = "android")]
-fn initialize_log() {
+pub(crate) fn initialize_log() {
     INIT_LOG.call_once(|| {
         tracing_android::init(env!("CARGO_PKG_NAME"));
     });
 }
 
 #[cfg(not(target_os = "android"))]
-fn initialize_log() {
+pub(crate) fn initialize_log() {
     INIT_LOG.call_once(|| {
         tracing_subscriber::fmt::init();
     });
@@ -142,12 +139,17 @@ pub fn beatstar_update_database() -> Option<Response> {
             // Get data inside file and map it
             let parsed_data = parse_beatstar(&body);
 
+            let json_size = std::mem::size_of_val::<BeatStarDataFile>(&parsed_data);
+
             BEAT_STAR_FILE.get_or_init(|| parsed_data);
+
+
 
             event!(
                 Level::INFO,
-                "Fully parsed beat file in {0}ms",
-                stopwatch.elapsed().as_millis()
+                "Fully parsed beat file in {0}ms (json size: {1}kb)",
+                stopwatch.elapsed().as_millis(),
+                json_size / 1024
             );
 
             stopwatch.stop();
@@ -159,19 +161,7 @@ pub fn beatstar_update_database() -> Option<Response> {
     None
 }
 
-///
-/// Get the song list and clone it
-///
-#[no_mangle]
-pub extern "C" fn Beatstar_RetrieveDatabase() -> *const BeatStarDataFile {
-    match beatstar_retrieve_database() {
-        Ok(e) => e,
-        Err(e) => panic!(
-            "Unable to fetch from database {0}",
-            e.into_string().unwrap()
-        ),
-    }
-}
+
 
 ///
 /// Get the song list and clone it
@@ -186,34 +176,6 @@ pub fn beatstar_retrieve_database() -> Result<&'static BeatStarDataFile, Respons
     Ok(bsf_mutex)
 }
 
-///
-/// Get the song based on hash
-///
-///
-#[no_mangle]
-pub unsafe extern "C" fn Beatstar_GetSong(hash: *const c_char) -> *const BeatStarSong {
-    if hash.is_null() {
-        return ptr::null_mut();
-    }
-
-    let raw = CStr::from_ptr(hash);
-
-    let hash_str = match raw.to_str() {
-        Ok(s) => s,
-        Err(_) => return ptr::null_mut(),
-    };
-
-    match beatstar_get_song(hash_str) {
-        Ok(e) => match e {
-            None => ptr::null(),
-            Some(e) => e,
-        },
-        Err(e) => panic!(
-            "Unable to fetch from database {0}",
-            e.into_string().unwrap()
-        ),
-    }
-}
 
 ///
 /// Gets a song based on it's hash

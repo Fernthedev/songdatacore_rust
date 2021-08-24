@@ -2,6 +2,8 @@ use std::cmp::Ordering;
 use std::hash::{Hash, Hasher};
 use std::os::raw::c_char;
 
+use tracing::{event, span, Level};
+
 //noinspection RsExternalLinter
 #[macro_use]
 use crate::vec_extern;
@@ -17,6 +19,71 @@ use std::collections::HashMap;
 use std::ffi::{CStr, CString};
 use std::ptr;
 use std::str::FromStr;
+
+///
+/// Get the song list and clone it
+///
+#[no_mangle]
+pub extern "C" fn Beatstar_RetrieveDatabase() -> *const BeatStarDataFile {
+    use crate::beatstar::database::beatstar_retrieve_database;
+    use crate::beatstar::database::initialize_log;
+
+    initialize_log();
+    let span = span!(Level::ERROR, "Beatstar_RetrieveDatabaseExtern");
+    let _guard = span.enter();
+
+    match beatstar_retrieve_database() {
+        Ok(e) => e,
+        Err(e) => {
+            event!(
+                Level::ERROR,
+                "Unable to fetch from database {0}",
+                e.into_string().unwrap()
+            );
+            ptr::null()
+        }
+    }
+}
+
+///
+/// Get the song based on hash
+///
+///
+#[no_mangle]
+pub unsafe extern "C" fn Beatstar_GetSong(hash: *const c_char) -> *const BeatStarSong {
+    use crate::beatstar::database::beatstar_get_song;
+    use crate::beatstar::database::initialize_log;
+
+    initialize_log();
+    let span = span!(Level::ERROR, "Beatstar_GetSongExtern");
+    let _guard = span.enter();
+
+    if hash.is_null() {
+        return ptr::null_mut();
+    }
+
+    let raw = CStr::from_ptr(hash);
+
+    let hash_str = match raw.to_str() {
+        Ok(s) => s,
+        Err(_) => return ptr::null_mut(),
+    };
+
+    match beatstar_get_song(hash_str) {
+        Ok(song_opt) => match song_opt {
+            None => ptr::null(),
+            Some(song) => song,
+        },
+        Err(e) => {
+            event!(
+                Level::ERROR,
+                "Unable to fetch from database {0}",
+                e.into_string().unwrap()
+            );
+            ptr::null()
+        }
+    }
+}
 
 #[derive(Eq)]
 #[repr(C)]
@@ -88,9 +155,9 @@ impl RustCStringWrapper {
 
     fn from_copy(c_str: *const c_char) -> Self {
         unsafe {
-            
             let old_string = CStr::from_ptr(c_str);
-            let new_string = CString::new(old_string.to_string_lossy().to_string()).expect("Unable to create a new C String from a C string");
+            let new_string = CString::new(old_string.to_string_lossy().to_string())
+                .expect("Unable to create a new C String from a C string");
             RustCStringWrapper {
                 string_data: new_string.into_raw(),
             }
