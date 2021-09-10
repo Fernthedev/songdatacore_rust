@@ -289,10 +289,10 @@ map_extern!(BeatStarSong, characteristics, BeatStarCharacteristics, HashMap<Rust
 #[no_mangle]
 pub extern "C" fn BeatStarSong_map_Characteristics_DifficultyStatsLen(
     self_i: &BeatStarSong,
-    beat_char: &BeatStarCharacteristics,
+    beat_char: BeatStarCharacteristics,
 ) -> usize {
     unsafe {
-        return match (*self_i.characteristics).get(beat_char) {
+        return match (*self_i.characteristics).get(&beat_char) {
             None => 0,
             Some(e) => e.len(),
         };
@@ -305,11 +305,11 @@ pub extern "C" fn BeatStarSong_map_Characteristics_DifficultyStatsLen(
 #[no_mangle]
 pub extern "C" fn BeatStarSong_map_Characteristics_DifficultyStatsGet(
     self_i: &BeatStarSong,
-    beat_char: &BeatStarCharacteristics,
+    beat_char: BeatStarCharacteristics,
     beat_key2: *const c_char,
 ) -> *const BeatStarSongDifficultyStats {
     unsafe {
-        return match (*self_i.characteristics).get(beat_char) {
+        return match (*self_i.characteristics).get(&beat_char) {
             Some(map) => match map.get(&RustCStringWrapper::from_copy(beat_key2)) {
                 None => ptr::null(),
                 Some(e) => e,
@@ -325,11 +325,11 @@ pub extern "C" fn BeatStarSong_map_Characteristics_DifficultyStatsGet(
 #[no_mangle]
 pub extern "C" fn BeatStarSong_map_Characteristics_DifficultyStatsGetStrKey(
     self_i: &BeatStarSong,
-    beat_char: &BeatStarCharacteristics,
+    beat_char: BeatStarCharacteristics,
     index: usize,
 ) -> *const c_char {
     unsafe {
-        return match (*self_i.characteristics).get(beat_char) {
+        return match (*self_i.characteristics).get(&beat_char) {
             None => ptr::null(),
             Some(e) => {
                 let keys: Vec<&RustCStringWrapper> = e.keys().collect();

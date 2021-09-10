@@ -204,20 +204,20 @@ uintptr_t BeatStarSong_map_CharacteristicsLen(const BeatStarSong *self_i);
 /// Gets the size of the hashmap of the characteristics
 ///
 uintptr_t BeatStarSong_map_Characteristics_DifficultyStatsLen(const BeatStarSong *self_i,
-                                                              const BeatStarCharacteristics *beat_char);
+                                                              BeatStarCharacteristics beat_char);
 
 ///
 /// Gets the difficulty stats based on the characteristic key + difficulty key
 ///
 const BeatStarSongDifficultyStats *BeatStarSong_map_Characteristics_DifficultyStatsGet(const BeatStarSong *self_i,
-                                                                                       const BeatStarCharacteristics *beat_char,
+                                                                                       BeatStarCharacteristics beat_char,
                                                                                        const char *beat_key2);
 
 ///
 /// Gets the key based on the index, converted to a string.
 ///
 const char *BeatStarSong_map_Characteristics_DifficultyStatsGetStrKey(const BeatStarSong *self_i,
-                                                                      const BeatStarCharacteristics *beat_char,
+                                                                      BeatStarCharacteristics beat_char,
                                                                       uintptr_t index);
 
 /// Gets the item in the vector from index
