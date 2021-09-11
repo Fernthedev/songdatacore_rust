@@ -128,6 +128,7 @@ jobs:
         repo: sc2ad/QuestPackageManager
 
     - id: release_data
+      if: contains(matrix.cargo-arg, 'ndk')
       uses: pozetroninc/github-action-get-latest-release@master
       with:
         repository: ${{ github.repository }}
