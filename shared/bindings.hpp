@@ -95,6 +95,7 @@ struct BeatStarSong {
   RustCStringWrapper uploaded;
   RustCStringWrapper hash;
   const HashMap<BeatStarCharacteristics, HashMap<RustCStringWrapper, BeatStarSongDifficultyStats>> *characteristics;
+  float heat;
 
   bool operator==(const BeatStarSong& other) const {
     return bpm == other.bpm &&
@@ -110,7 +111,8 @@ struct BeatStarSong {
            diffs == other.diffs &&
            uploaded == other.uploaded &&
            hash == other.hash &&
-           characteristics == other.characteristics;
+           characteristics == other.characteristics &&
+           heat == other.heat;
   }
   bool operator!=(const BeatStarSong& other) const {
     return bpm != other.bpm ||
@@ -126,7 +128,8 @@ struct BeatStarSong {
            diffs != other.diffs ||
            uploaded != other.uploaded ||
            hash != other.hash ||
-           characteristics != other.characteristics;
+           characteristics != other.characteristics ||
+           heat != other.heat;
   }
 };
 
