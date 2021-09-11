@@ -212,6 +212,7 @@ pub struct BeatStarSong {
         BeatStarCharacteristics,
         HashMap<RustCStringWrapper, BeatStarSongDifficultyStats>,
     >,
+    pub heat: f32,
 }
 
 impl BeatStarSong {
@@ -256,6 +257,7 @@ impl BeatStarSong {
             characteristics: Box::into_raw(Box::new(characteristics_convert)),
             duration_secs: og.duration_secs,
             level_author_name: RustCStringWrapper::new(og.level_author_name.clone().into()),
+            heat: og.heat,
         }
     }
 }

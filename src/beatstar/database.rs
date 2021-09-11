@@ -4,11 +4,13 @@ use crate::beatstar::data::{
 use crate::beatstar::ffi::{BeatStarDataFile, BeatStarSong, RustCStringWrapper};
 use crate::beatstar::BEAT_STAR_FILE;
 use anyhow::Context;
+use chrono::{DateTime};
 use std::collections::HashMap;
 use std::io::{Cursor, Read};
+use std::ops::Sub;
 use std::str::FromStr;
 use std::sync::Once;
-use std::time::Duration;
+use std::time::{Duration as OtherDuration, SystemTime};
 use stopwatch::Stopwatch;
 use tracing::{event, span, Level};
 use ureq::{Agent, Response};
@@ -16,13 +18,14 @@ use ureq::{Agent, Response};
 extern crate chrono;
 
 pub const SCRAPED_SCORE_SABER_URL: &str = "https://github.com/andruzzzhka/BeatSaberScrappedData/blob/master/combinedScrappedData.zip?raw=true";
-
 const HTTP_OK: u16 = 200;
+static INIT_LOG: Once = Once::new();
+static BEATSAVER_EPOCH: std::time::Duration = std::time::Duration::from_secs(1525132800);
 
 lazy_static! {
     static ref AGENT: Agent = ureq::AgentBuilder::new()
-        .timeout_read(Duration::from_secs(5))
-        .timeout_write(Duration::from_secs(5))
+        .timeout_read(OtherDuration::from_secs(5))
+        .timeout_write(OtherDuration::from_secs(5))
         .build();
 }
 
@@ -31,8 +34,35 @@ fn calculate_pp(diff: &BeatStarSongDifficultyStatsJson) -> f32 {
         return 0.0;
     }
 
-
     diff.stars * (45.0 + ((10.0 - diff.stars) / 7.0))
+}
+
+fn calculate_heatmap(
+    song: &BeatStarSongJson,
+    time_past_epoch: u64,
+) -> Result<f32, anyhow::Error> {
+    let uploaded_date = DateTime::parse_from_rfc3339(&song.uploaded)?.timestamp() as u64;
+    let seconds_diff = uploaded_date - time_past_epoch;
+
+    let score = song.upvotes as i64 - song.downvotes as i64;
+
+    let sign = match score {
+        1.. => {
+            -1
+        }
+        0_i64 => {
+            0
+        }
+        i64::MIN..=-1_i64 => {
+            -1
+        }
+    };
+
+
+    let order = score.max(1).log10();
+    let heat = sign as f64 * order as f64 + seconds_diff as f64 / 45000f64;
+
+    Ok(heat as f32)
 }
 
 pub fn beatstar_zip_content(
@@ -46,22 +76,19 @@ pub fn beatstar_zip_content(
 
     let mut bytes: Vec<u8> = Vec::with_capacity(len);
     response.into_reader().read_to_end(&mut bytes)?;
-
     let cursor = Cursor::new(&bytes);
 
     let mut zip = zip::ZipArchive::new(cursor).unwrap();
-
     assert!(!zip.is_empty());
-
     let mut file = zip.by_index(0)?;
-
     let mut string_buffer = Vec::new();
-
     file.read_to_end(&mut string_buffer)?;
 
     let mut json: Vec<BeatStarSongJson> = serde_json::from_slice(string_buffer.as_slice())?;
+    let time_past_epoch = SystemTime::now().sub(BEATSAVER_EPOCH).elapsed()?.as_secs() as u64;
 
     for song in &mut json {
+        // sort characteristics
         type DiffMap = HashMap<String, BeatStarSongDifficultyStatsJson>;
 
         let mut characteristics: HashMap<BeatStarCharacteristics, DiffMap> = HashMap::new();
@@ -77,19 +104,20 @@ pub fn beatstar_zip_content(
                 .entry(char.unwrap())
                 .or_insert_with(DiffMap::new);
 
-
+            // calculate approximate PP
             diff.approximate_pp_value = calculate_pp(diff);
 
             char_map.insert(diff.diff.clone(), diff.clone());
         }
 
         song.characteristics = characteristics;
+
+        // calculate heatmap
+        song.heat = calculate_heatmap(song, time_past_epoch).unwrap_or(0f32);
     }
 
     Ok(json)
 }
-
-static INIT_LOG: Once = Once::new();
 
 #[cfg(target_os = "android")]
 pub(crate) fn initialize_log() {
@@ -143,8 +171,6 @@ pub fn beatstar_update_database() -> Option<Response> {
 
             BEAT_STAR_FILE.get_or_init(|| parsed_data);
 
-
-
             event!(
                 Level::INFO,
                 "Fully parsed beat file in {0}ms (json size: {1}kb)",
@@ -161,8 +187,6 @@ pub fn beatstar_update_database() -> Option<Response> {
     None
 }
 
-
-
 ///
 /// Get the song list and clone it
 ///
@@ -175,7 +199,6 @@ pub fn beatstar_retrieve_database() -> Result<&'static BeatStarDataFile, Respons
 
     Ok(bsf_mutex)
 }
-
 
 ///
 /// Gets a song based on it's hash

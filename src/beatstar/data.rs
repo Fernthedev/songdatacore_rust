@@ -48,6 +48,9 @@ pub struct BeatStarSongJson {
     #[serde(skip_deserializing)]
     pub characteristics:
         HashMap<BeatStarCharacteristics, HashMap<String, BeatStarSongDifficultyStatsJson>>,
+
+    #[serde(skip_deserializing)]
+    pub heat: f32,
 }
 
 #[repr(C)]

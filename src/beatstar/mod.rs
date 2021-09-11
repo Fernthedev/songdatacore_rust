@@ -57,13 +57,13 @@ mod tests {
 
         for i in 0..3 {
             unsafe {
-                let diffMapSize = (&song).characteristics.as_ref().unwrap().len();
-                println!("Characteristics size: {0}", diffMapSize);
-                assert_eq!(diffMapSize, 2);
+                let diff_map_size = (&song).characteristics.as_ref().unwrap().len();
+                println!("Characteristics size: {0}", diff_map_size);
+                assert_eq!(diff_map_size, 2);
                 for (chara, diff_map) in &*(&song).characteristics {
                     println!("Got the char!: {0} {1}", chara.to_string(), diff_map.len());
 
-                    for (diffName, diff) in &*diff_map {
+                    for (diff_name, diff) in &*diff_map {
                         println!("Got the diff!: {0} with pp {1}", diff.diff.to_string(), diff.approximate_pp_value);
                     }
                 }
