@@ -93,6 +93,7 @@ struct BeatStarSong {
   RustCStringWrapper level_author_name;
   const Vec<BeatStarSongDifficultyStats> *diffs;
   RustCStringWrapper uploaded;
+  uint32_t uploaded_unix_time;
   RustCStringWrapper hash;
   const HashMap<BeatStarCharacteristics, HashMap<RustCStringWrapper, BeatStarSongDifficultyStats>> *characteristics;
   float heat;
@@ -110,6 +111,7 @@ struct BeatStarSong {
            level_author_name == other.level_author_name &&
            diffs == other.diffs &&
            uploaded == other.uploaded &&
+           uploaded_unix_time == other.uploaded_unix_time &&
            hash == other.hash &&
            characteristics == other.characteristics &&
            heat == other.heat;
@@ -127,6 +129,7 @@ struct BeatStarSong {
            level_author_name != other.level_author_name ||
            diffs != other.diffs ||
            uploaded != other.uploaded ||
+           uploaded_unix_time != other.uploaded_unix_time ||
            hash != other.hash ||
            characteristics != other.characteristics ||
            heat != other.heat;
