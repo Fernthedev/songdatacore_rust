@@ -42,6 +42,9 @@ pub struct BeatStarSongJson {
     #[serde(rename = "Uploaded")]
     pub uploaded: String,
 
+    #[serde(skip_deserializing)]
+    pub uploaded_unix_time: u32,
+
     #[serde(rename = "Hash")]
     pub hash: String,
 

@@ -207,6 +207,7 @@ pub struct BeatStarSong {
     pub level_author_name: RustCStringWrapper,
     pub diffs: *const Vec<BeatStarSongDifficultyStats>,
     pub uploaded: RustCStringWrapper,
+    pub uploaded_unix_time: u32,
     pub hash: RustCStringWrapper,
     pub characteristics: *const HashMap<
         BeatStarCharacteristics,
@@ -258,6 +259,7 @@ impl BeatStarSong {
             duration_secs: og.duration_secs,
             level_author_name: RustCStringWrapper::new(og.level_author_name.clone().into()),
             heat: og.heat,
+            uploaded_unix_time: og.uploaded_unix_time,
         }
     }
 }

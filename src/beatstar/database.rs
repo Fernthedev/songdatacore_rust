@@ -40,8 +40,8 @@ fn calculate_pp(diff: &BeatStarSongDifficultyStatsJson) -> f32 {
 fn calculate_heatmap(
     song: &BeatStarSongJson,
     time_past_epoch: u64,
+    uploaded_date: u64
 ) -> Result<f32, anyhow::Error> {
-    let uploaded_date = DateTime::parse_from_rfc3339(&song.uploaded)?.timestamp() as u64;
     let seconds_diff = uploaded_date - time_past_epoch;
 
     let score = song.upvotes as i64 - song.downvotes as i64;
@@ -113,7 +113,9 @@ pub fn beatstar_zip_content(
         song.characteristics = characteristics;
 
         // calculate heatmap
-        song.heat = calculate_heatmap(song, time_past_epoch).unwrap_or(0f32);
+        let upload_unix_time = DateTime::parse_from_rfc3339(&song.uploaded)?.timestamp() as u64;
+        song.heat = calculate_heatmap(song, time_past_epoch, upload_unix_time).unwrap_or(0f32);
+        song.uploaded_unix_time = upload_unix_time as u32;
     }
 
     Ok(json)
