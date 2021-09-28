@@ -1,5 +1,5 @@
 use crate::beatstar::data::{
-    BeatStarCharacteristics, BeatStarSongDifficultyStatsJson, BeatStarSongJson,
+    BeatStarCharacteristics, BeatStarSongDifficultyStatsJson, BeatStarSongJson, UnixTime
 };
 use crate::beatstar::ffi::{BeatStarDataFile, BeatStarSong, RustCStringWrapper};
 use crate::beatstar::BEAT_STAR_FILE;
@@ -39,8 +39,8 @@ fn calculate_pp(diff: &BeatStarSongDifficultyStatsJson) -> f32 {
 
 fn calculate_heatmap(
     song: &BeatStarSongJson,
-    time_past_epoch: u64,
-    uploaded_date: u64
+    time_past_epoch: UnixTime,
+    uploaded_date: UnixTime
 ) -> Result<f32, anyhow::Error> {
     let seconds_diff = uploaded_date - time_past_epoch;
 
@@ -85,7 +85,7 @@ pub fn beatstar_zip_content(
     file.read_to_end(&mut string_buffer)?;
 
     let mut json: Vec<BeatStarSongJson> = serde_json::from_slice(string_buffer.as_slice())?;
-    let time_past_epoch = SystemTime::now().sub(BEATSAVER_EPOCH).elapsed()?.as_secs() as u64;
+    let time_past_epoch = SystemTime::now().sub(BEATSAVER_EPOCH).elapsed()?.as_secs() as UnixTime;
 
     for song in &mut json {
         // sort characteristics
@@ -113,9 +113,9 @@ pub fn beatstar_zip_content(
         song.characteristics = characteristics;
 
         // calculate heatmap
-        let upload_unix_time = DateTime::parse_from_rfc3339(&song.uploaded)?.timestamp() as u64;
+        let upload_unix_time = DateTime::parse_from_rfc3339(&song.uploaded)?.timestamp() as UnixTime;
         song.heat = calculate_heatmap(song, time_past_epoch, upload_unix_time).unwrap_or(0f32);
-        song.uploaded_unix_time = upload_unix_time as u32;
+        song.uploaded_unix_time = upload_unix_time;
     }
 
     Ok(json)

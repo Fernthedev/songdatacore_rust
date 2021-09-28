@@ -3,6 +3,8 @@ use std::collections::HashMap;
 use std::result;
 use std::str::FromStr;
 
+pub type UnixTime = libc::time_t;
+
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "PascalCase", rename = "with typo")]
 pub struct BeatStarSongJson {
@@ -43,7 +45,7 @@ pub struct BeatStarSongJson {
     pub uploaded: String,
 
     #[serde(skip_deserializing)]
-    pub uploaded_unix_time: u32,
+    pub uploaded_unix_time: UnixTime,
 
     #[serde(rename = "Hash")]
     pub hash: String,

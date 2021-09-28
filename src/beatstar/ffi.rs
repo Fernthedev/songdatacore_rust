@@ -12,7 +12,7 @@ use crate::vec_extern;
 #[macro_use]
 use crate::map_extern;
 use crate::beatstar::data::{
-    BeatStarCharacteristics, BeatStarSongDifficultyStatsJson, BeatStarSongJson,
+    BeatStarCharacteristics, BeatStarSongDifficultyStatsJson, BeatStarSongJson, UnixTime
 };
 use std::borrow::Borrow;
 use std::collections::HashMap;
@@ -207,7 +207,7 @@ pub struct BeatStarSong {
     pub level_author_name: RustCStringWrapper,
     pub diffs: *const Vec<BeatStarSongDifficultyStats>,
     pub uploaded: RustCStringWrapper,
-    pub uploaded_unix_time: u32,
+    pub uploaded_unix_time: UnixTime,
     pub hash: RustCStringWrapper,
     pub characteristics: *const HashMap<
         BeatStarCharacteristics,

@@ -80,6 +80,8 @@ struct BeatStarSongDifficultyStats {
   }
 };
 
+using UnixTime = time_t;
+
 struct BeatStarSong {
   float bpm;
   uint32_t upvotes;
@@ -93,7 +95,7 @@ struct BeatStarSong {
   RustCStringWrapper level_author_name;
   const Vec<BeatStarSongDifficultyStats> *diffs;
   RustCStringWrapper uploaded;
-  uint32_t uploaded_unix_time;
+  UnixTime uploaded_unix_time;
   RustCStringWrapper hash;
   const HashMap<BeatStarCharacteristics, HashMap<RustCStringWrapper, BeatStarSongDifficultyStats>> *characteristics;
   float heat;
