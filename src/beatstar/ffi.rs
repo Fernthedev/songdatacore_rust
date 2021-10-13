@@ -14,7 +14,6 @@ use crate::map_extern;
 use crate::beatstar::data::{
     BeatStarCharacteristics, BeatStarSongDifficultyStatsJson, BeatStarSongJson, UnixTime
 };
-use std::borrow::Borrow;
 use std::collections::HashMap;
 use std::ffi::{CStr, CString};
 use std::ptr;
@@ -220,6 +219,7 @@ pub struct BeatStarSong {
 impl BeatStarSong {
     pub fn convert(og: &BeatStarSongJson) -> BeatStarSong {
         let mut diff_convert: Vec<BeatStarSongDifficultyStats> = vec![];
+        diff_convert.reserve(og.diffs.len());
 
         for diff in &og.diffs {
             diff_convert.push(BeatStarSongDifficultyStats::convert(diff))
@@ -229,8 +229,9 @@ impl BeatStarSong {
             BeatStarCharacteristics,
             HashMap<RustCStringWrapper, BeatStarSongDifficultyStats>,
         > = HashMap::new();
+        characteristics_convert.reserve(og.characteristics.len());
 
-        for (char_star, char_map) in og.characteristics.borrow() {
+        for (char_star, char_map) in &og.characteristics {
             let mut char_map_convert: HashMap<RustCStringWrapper, BeatStarSongDifficultyStats> =
                 HashMap::new();
 
@@ -368,6 +369,7 @@ pub struct BeatStarSongDifficultyStats {
     pub char: RustCStringWrapper,
     pub diff_characteristics: BeatStarCharacteristics,
     pub requirements: *const Vec<RustCStringWrapper>,
+    pub ranked_update_time_unix_epoch: UnixTime,
 }
 
 vec_extern!(
@@ -381,6 +383,7 @@ vec_extern!(
 impl BeatStarSongDifficultyStats {
     pub fn convert(og: &BeatStarSongDifficultyStatsJson) -> BeatStarSongDifficultyStats {
         let mut requirements: Vec<RustCStringWrapper> = vec![];
+        requirements.reserve(og.requirements.len());
 
         for requirement in &og.requirements {
             requirements.push(RustCStringWrapper::new(requirement.clone().into()))
@@ -404,6 +407,7 @@ impl BeatStarSongDifficultyStats {
             requirements: Box::into_raw(Box::new(requirements)),
             approximate_pp_value: og.approximate_pp_value,
             diff_characteristics: characteristic_enum,
+            ranked_update_time_unix_epoch: og.ranked_update_time_unix_epoch,
         }
     }
 }

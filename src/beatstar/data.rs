@@ -93,6 +93,12 @@ pub struct BeatStarSongDifficultyStatsJson {
 
     #[serde(skip_deserializing)]
     pub approximate_pp_value: f32,
+
+    #[serde(rename = "RankedUpdateTime")]
+    pub ranked_update_time: String,
+
+    #[serde(skip_deserializing)]
+    pub ranked_update_time_unix_epoch: UnixTime,
 }
 
 #[repr(C)]

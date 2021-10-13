@@ -36,6 +36,8 @@ struct RustCStringWrapper {
   }
 };
 
+using UnixTime = time_t;
+
 struct BeatStarSongDifficultyStats {
   RustCStringWrapper diff;
   float approximate_pp_value;
@@ -49,6 +51,7 @@ struct BeatStarSongDifficultyStats {
   RustCStringWrapper char_;
   BeatStarCharacteristics diff_characteristics;
   const Vec<RustCStringWrapper> *requirements;
+  UnixTime ranked_update_time_unix_epoch;
 
   bool operator==(const BeatStarSongDifficultyStats& other) const {
     return diff == other.diff &&
@@ -62,7 +65,8 @@ struct BeatStarSongDifficultyStats {
            obstacles == other.obstacles &&
            char_ == other.char_ &&
            diff_characteristics == other.diff_characteristics &&
-           requirements == other.requirements;
+           requirements == other.requirements &&
+           ranked_update_time_unix_epoch == other.ranked_update_time_unix_epoch;
   }
   bool operator!=(const BeatStarSongDifficultyStats& other) const {
     return diff != other.diff ||
@@ -76,11 +80,10 @@ struct BeatStarSongDifficultyStats {
            obstacles != other.obstacles ||
            char_ != other.char_ ||
            diff_characteristics != other.diff_characteristics ||
-           requirements != other.requirements;
+           requirements != other.requirements ||
+           ranked_update_time_unix_epoch != other.ranked_update_time_unix_epoch;
   }
 };
-
-using UnixTime = time_t;
 
 struct BeatStarSong {
   float bpm;

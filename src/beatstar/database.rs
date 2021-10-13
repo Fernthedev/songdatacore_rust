@@ -1,10 +1,10 @@
 use crate::beatstar::data::{
-    BeatStarCharacteristics, BeatStarSongDifficultyStatsJson, BeatStarSongJson, UnixTime
+    BeatStarCharacteristics, BeatStarSongDifficultyStatsJson, BeatStarSongJson, UnixTime,
 };
 use crate::beatstar::ffi::{BeatStarDataFile, BeatStarSong, RustCStringWrapper};
 use crate::beatstar::BEAT_STAR_FILE;
 use anyhow::Context;
-use chrono::{DateTime};
+use chrono::DateTime;
 use std::collections::HashMap;
 use std::io::{Cursor, Read};
 use std::ops::Sub;
@@ -48,30 +48,21 @@ fn calculate_rating(self_i: &BeatStarSongJson) -> f32 {
     tmp - (tmp - 0.5) * (2_f32.powf(-(tot + 1f32).log10()) as f32)
 }
 
-
-
 // https://github.com/bsmg/beatsaver-reloaded/blob/420be0c964f3b4ee9c876f8b7fdb25495526138d/server/src/mongo/models/Beatmap.ts#L179-L192
 fn calculate_heatmap(
     song: &BeatStarSongJson,
     time_past_epoch: UnixTime,
-    uploaded_date: UnixTime
+    uploaded_date: UnixTime,
 ) -> Result<f32, anyhow::Error> {
     let seconds_diff = uploaded_date - time_past_epoch;
 
     let score = song.upvotes as i64 - song.downvotes as i64;
 
     let sign = match score {
-        1.. => {
-            -1
-        }
-        0_i64 => {
-            0
-        }
-        i64::MIN..=-1_i64 => {
-            -1
-        }
+        1.. => -1,
+        0_i64 => 0,
+        i64::MIN..=-1_i64 => -1,
     };
-
 
     let order = score.max(1).log10();
     let heat = sign as f64 * order as f64 + seconds_diff as f64 / 45000f64;
@@ -111,6 +102,12 @@ pub fn beatstar_zip_content(
             let char = BeatStarCharacteristics::from_str(diff.char.as_str());
 
             if char.is_err() {
+                event!(
+                    Level::ERROR,
+                    "Could not parse characteristic {0} for song {1}",
+                    diff.char.as_str(),
+                    song.hash.as_str()
+                );
                 continue 'diffLoop;
             }
 
@@ -121,13 +118,17 @@ pub fn beatstar_zip_content(
             // calculate approximate PP
             diff.approximate_pp_value = calculate_pp(diff);
 
+            let ranked_time = DateTime::parse_from_rfc3339(&song.uploaded)?.timestamp() as UnixTime;
+            diff.ranked_update_time_unix_epoch = ranked_time;
+
             char_map.insert(diff.diff.clone(), diff.clone());
         }
 
         song.characteristics = characteristics;
 
         // calculate heatmap
-        let upload_unix_time = DateTime::parse_from_rfc3339(&song.uploaded)?.timestamp() as UnixTime;
+        let upload_unix_time =
+            DateTime::parse_from_rfc3339(&song.uploaded)?.timestamp() as UnixTime;
         song.heat = calculate_heatmap(song, time_past_epoch, upload_unix_time).unwrap_or(0f32);
         song.uploaded_unix_time = upload_unix_time;
         song.rating = calculate_rating(song);
