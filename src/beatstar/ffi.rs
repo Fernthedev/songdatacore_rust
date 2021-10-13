@@ -214,6 +214,7 @@ pub struct BeatStarSong {
         HashMap<RustCStringWrapper, BeatStarSongDifficultyStats>,
     >,
     pub heat: f32,
+    pub rating: f32,
 }
 
 impl BeatStarSong {
@@ -260,19 +261,22 @@ impl BeatStarSong {
             level_author_name: RustCStringWrapper::new(og.level_author_name.clone().into()),
             heat: og.heat,
             uploaded_unix_time: og.uploaded_unix_time,
+            rating: og.rating,
         }
     }
 }
 
+// https://github.com/bsmg/beatsaver-reloaded/blob/420be0c964f3b4ee9c876f8b7fdb25495526138d/server/src/mongo/models/Beatmap.ts#L172-L177
 ///
 /// An algorithm for getting a song's rating.
 ///
+/// TODO: Remove
 #[no_mangle]
 pub extern "C" fn BeatStarSong_rating(self_i: &BeatStarSong) -> f32 {
     let tot: f32 = (self_i.upvotes + self_i.downvotes) as f32;
     let tmp: f32 = (self_i.upvotes) as f32 / tot;
 
-    tmp - (tmp - 0.5) * (2_i32.pow(-(tot + 1f32).log10() as u32) as f32)
+    tmp - (tmp - 0.5) * (2_f32.powf(-(tot + 1f32).log10()) as f32)
 }
 
 vec_extern!(

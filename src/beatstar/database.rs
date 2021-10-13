@@ -37,6 +37,20 @@ fn calculate_pp(diff: &BeatStarSongDifficultyStatsJson) -> f32 {
     diff.stars * (45.0 + ((10.0 - diff.stars) / 7.0))
 }
 
+// https://github.com/bsmg/beatsaver-reloaded/blob/420be0c964f3b4ee9c876f8b7fdb25495526138d/server/src/mongo/models/Beatmap.ts#L172-L177
+///
+/// An algorithm for getting a song's rating.
+///
+fn calculate_rating(self_i: &BeatStarSongJson) -> f32 {
+    let tot: f32 = (self_i.upvotes + self_i.downvotes) as f32;
+    let tmp: f32 = (self_i.upvotes) as f32 / tot;
+
+    tmp - (tmp - 0.5) * (2_f32.powf(-(tot + 1f32).log10()) as f32)
+}
+
+
+
+// https://github.com/bsmg/beatsaver-reloaded/blob/420be0c964f3b4ee9c876f8b7fdb25495526138d/server/src/mongo/models/Beatmap.ts#L179-L192
 fn calculate_heatmap(
     song: &BeatStarSongJson,
     time_past_epoch: UnixTime,
@@ -116,6 +130,7 @@ pub fn beatstar_zip_content(
         let upload_unix_time = DateTime::parse_from_rfc3339(&song.uploaded)?.timestamp() as UnixTime;
         song.heat = calculate_heatmap(song, time_past_epoch, upload_unix_time).unwrap_or(0f32);
         song.uploaded_unix_time = upload_unix_time;
+        song.rating = calculate_rating(song);
     }
 
     Ok(json)

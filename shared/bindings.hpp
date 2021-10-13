@@ -99,6 +99,7 @@ struct BeatStarSong {
   RustCStringWrapper hash;
   const HashMap<BeatStarCharacteristics, HashMap<RustCStringWrapper, BeatStarSongDifficultyStats>> *characteristics;
   float heat;
+  float rating;
 
   bool operator==(const BeatStarSong& other) const {
     return bpm == other.bpm &&
@@ -116,7 +117,8 @@ struct BeatStarSong {
            uploaded_unix_time == other.uploaded_unix_time &&
            hash == other.hash &&
            characteristics == other.characteristics &&
-           heat == other.heat;
+           heat == other.heat &&
+           rating == other.rating;
   }
   bool operator!=(const BeatStarSong& other) const {
     return bpm != other.bpm ||
@@ -134,7 +136,8 @@ struct BeatStarSong {
            uploaded_unix_time != other.uploaded_unix_time ||
            hash != other.hash ||
            characteristics != other.characteristics ||
-           heat != other.heat;
+           heat != other.heat ||
+           rating != other.rating;
   }
 };
 
@@ -182,6 +185,7 @@ uintptr_t BeatStarDataFile_map_SongsLen(const BeatStarDataFile *self_i);
 ///
 /// An algorithm for getting a song's rating.
 ///
+/// TODO: Remove
 float BeatStarSong_rating(const BeatStarSong *self_i);
 
 /// Gets the item in the vector from index

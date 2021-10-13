@@ -56,6 +56,9 @@ pub struct BeatStarSongJson {
 
     #[serde(skip_deserializing)]
     pub heat: f32,
+
+    #[serde(skip_deserializing)]
+    pub rating: f32,
 }
 
 #[repr(C)]
