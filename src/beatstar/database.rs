@@ -6,7 +6,7 @@ use crate::beatstar::BEAT_STAR_FILE;
 use anyhow::Context;
 use chrono::DateTime;
 use std::collections::HashMap;
-use std::io::{Cursor, Read};
+use std::io::{BufReader, Cursor, Read};
 use std::ops::Sub;
 use std::str::FromStr;
 use std::sync::Once;
@@ -85,11 +85,13 @@ pub fn beatstar_zip_content(
 
     let mut zip = zip::ZipArchive::new(cursor).unwrap();
     assert!(!zip.is_empty());
-    let mut file = zip.by_index(0)?;
-    let mut string_buffer = Vec::new();
-    file.read_to_end(&mut string_buffer)?;
+    let file = zip.by_index(0)?;
+    let reader = BufReader::new(file);
 
-    let mut json: Vec<BeatStarSongJson> = serde_json::from_slice(string_buffer.as_slice())?;
+    // let mut string_buffer = Vec::new();
+    // file.read_to_end(&mut string_buffer)?;
+
+    let mut json: Vec<BeatStarSongJson> = serde_json::from_reader(reader)?;
     let time_past_epoch = SystemTime::now().sub(BEATSAVER_EPOCH).elapsed()?.as_secs() as UnixTime;
 
     for song in &mut json {
