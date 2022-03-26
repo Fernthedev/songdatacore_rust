@@ -144,7 +144,7 @@ pub fn beatstar_zip_content(
 #[cfg(target_os = "android")]
 pub(crate) fn initialize_log() {
     INIT_LOG.call_once(|| {
-        tracing_android::init(env!("CARGO_PKG_NAME"));
+        paranoid_android::init(env!("CARGO_PKG_NAME"));
     });
 }
 
