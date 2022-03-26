@@ -17,9 +17,6 @@ pub struct BeatStarSongJson {
     #[serde(rename = "Downvotes")]
     pub downvotes: u32,
 
-    #[serde(rename = "Downloads")]
-    pub downloads: u32,
-
     #[serde(rename = "Duration")]
     pub duration_secs: u32,
 
