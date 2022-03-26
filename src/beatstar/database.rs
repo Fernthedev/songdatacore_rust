@@ -15,6 +15,8 @@ use stopwatch::Stopwatch;
 use tracing::{event, span, Level};
 use ureq::{Agent, Response};
 
+use super::numstuff::log10;
+
 extern crate chrono;
 
 pub const SCRAPED_SCORE_SABER_URL: &str = "https://github.com/andruzzzhka/BeatSaberScrappedData/blob/master/combinedScrappedData.zip?raw=true";
@@ -64,7 +66,7 @@ fn calculate_heatmap(
         i64::MIN..=-1_i64 => -1,
     };
 
-    let order = score.max(1).log10();
+    let order = log10(score.max(1));
     let heat = sign as f64 * order as f64 + seconds_diff as f64 / 45000f64;
 
     Ok(heat as f32)

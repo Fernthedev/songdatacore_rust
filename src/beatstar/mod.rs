@@ -7,6 +7,7 @@ mod database;
 #[macro_use]
 mod macros;
 mod ffi;
+mod numstuff;
 
 static BEAT_STAR_FILE: OnceCell<BeatStarDataFile> = OnceCell::new();
 

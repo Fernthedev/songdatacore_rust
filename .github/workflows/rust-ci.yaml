@@ -20,10 +20,10 @@ jobs:
 
     - uses: actions-rs/toolchain@v1
       with:
-        toolchain: nightly
+        toolchain: beta
 
     - name: Create Cargo LockFile
-      run: cargo +nightly update
+      run: cargo +beta update
 
     - uses: actions/cache@v2
       with:
@@ -36,9 +36,9 @@ jobs:
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
     - name: Build
-      run: cargo +nightly build --verbose
+      run: cargo +beta build --verbose
     - name: Run tests
-      run: cargo +nightly test --verbose
+      run: cargo +beta test --verbose
     - name: Upload artifact
       uses: actions/upload-artifact@v2
       with:
