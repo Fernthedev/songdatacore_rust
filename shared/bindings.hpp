@@ -89,7 +89,6 @@ struct BeatStarSong {
   float bpm;
   uint32_t upvotes;
   uint32_t downvotes;
-  uint32_t downloads;
   uint32_t duration_secs;
   RustCStringWrapper key;
   RustCStringWrapper song_name;
@@ -108,7 +107,6 @@ struct BeatStarSong {
     return bpm == other.bpm &&
            upvotes == other.upvotes &&
            downvotes == other.downvotes &&
-           downloads == other.downloads &&
            duration_secs == other.duration_secs &&
            key == other.key &&
            song_name == other.song_name &&
@@ -127,7 +125,6 @@ struct BeatStarSong {
     return bpm != other.bpm ||
            upvotes != other.upvotes ||
            downvotes != other.downvotes ||
-           downloads != other.downloads ||
            duration_secs != other.duration_secs ||
            key != other.key ||
            song_name != other.song_name ||
