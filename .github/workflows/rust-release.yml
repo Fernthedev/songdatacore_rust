@@ -93,7 +93,13 @@ jobs:
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
     - name: Build
-      run: cargo +nightly ${{matrix.cargo-arg}} build --verbose --release
+      if: ${{ !contains(matrix.cargo-arg, 'ndk') }}
+      run: cargo +nightly build --verbose --release
+
+    - name: Build NDK
+      if: ${{ contains(matrix.cargo-arg, 'ndk') }}
+      run: cargo +nightly ${{matrix.cargo-arg}} build -Zbuild-std --verbose --release
+
     - name: Rename and move files
       run: |
         ls ./target/release/
