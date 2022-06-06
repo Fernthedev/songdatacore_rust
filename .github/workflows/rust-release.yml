@@ -129,10 +129,10 @@ jobs:
       uses: dawidd6/action-download-artifact@v2
       with:
         github_token: ${{secrets.GITHUB_TOKEN}}
-        workflow: main.yml
-        name: QPM-ubuntu-x64
+        workflow: cargo-build.yml
+        name: linux-qpm-rust
         path: QPM
-        repo: sc2ad/QuestPackageManager
+        repo: RedBrumbler/QuestPackageManager-Rust
 
     - id: release_data
       if: contains(matrix.cargo-arg, 'ndk')
@@ -153,15 +153,12 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
+        chmod +x ./QPM/qpm-rust
+        ./QPM/qpm-rust restore
+        ./QPM/qpm-rust package edit --version "${{ steps.release_data.outputs.release }}"
 
-
-
-        chmod +x ./QPM/QPM
-        ./QPM/QPM restore
-        ./QPM/QPM package edit version "${{ steps.release_data.outputs.release }}"
-
-        ./QPM/QPM package edit-extra "branchName" "version-${{ steps.get_tag_version.outputs.TAG }}"
-        ./QPM/QPM package edit-extra "soLink" "https://github.com/${{ github.repository }}/releases/download/${{ steps.get_tag_version.outputs.TAG }}/${{ matrix.finalPrefix }}-${{ matrix.file-name }}"
+        ./QPM/qpm-rust package edit-extra --branchName "version-${{ steps.get_tag_version.outputs.TAG }}"
+        ./QPM/qpm-rust package edit-extra --soLink "https://github.com/${{ github.repository }}/releases/download/${{ steps.get_tag_version.outputs.TAG }}/${{ matrix.finalPrefix }}-${{ matrix.file-name }}"
 
         # Commit the change to the package, .vscode/c_cpp_properties.json, and Android.mk
         git config user.name "Github Actions"
@@ -196,4 +193,4 @@ jobs:
 
     - name: QPM Publish
       if: contains(matrix.cargo-arg, 'ndk')
-      run: ./QPM/QPM publish
+      run: ./QPM/qpm-rust publish
