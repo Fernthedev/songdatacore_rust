@@ -69,14 +69,15 @@ jobs:
     - name: Setup NDK
       if: contains(matrix.cargo-arg, 'ndk')
       id: setup-ndk
-      uses: nttld/setup-ndk@v1.0.3
+      uses: nttld/setup-ndk@v1
       with:
         ndk-version: r22
     - name: Download Cargo NDK
       if: contains(matrix.cargo-arg, 'ndk')
       run: |
         rustup default nightly
-        cargo +nightly install cargo-ndk
+        cargo +nightly install cargo-ndk --version 2.7.0
+        rustup component add rust-src --toolchain nightly
         rustup target add aarch64-linux-android
     - name: Create Cargo LockFile
       run: cargo +nightly update
