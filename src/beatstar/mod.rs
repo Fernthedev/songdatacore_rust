@@ -21,10 +21,10 @@ mod tests {
     fn download_db() {
         let mut stopwatch = Stopwatch::start_new();
         println!("Getting db");
-        assert!(beatstar_update_database().is_none());
+        assert!(beatstar_update_database().is_ok_and(|f| f.is_none()));
         println!("Got DB, took {0}ms", stopwatch.elapsed().as_millis());
         stopwatch.restart();
-        assert!(beatstar_update_database().is_none());
+        assert!(beatstar_update_database().is_ok_and(|f| f.is_none()));
         assert!(stopwatch.elapsed().as_millis() < 1000);
         println!("Memory Cache works");
     }

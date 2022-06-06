@@ -64,7 +64,7 @@ jobs:
     
     - uses: actions-rs/toolchain@v1
       with:
-        toolchain: beta
+        toolchain: nightly
     
     - name: Setup NDK
       if: contains(matrix.cargo-arg, 'ndk')
@@ -75,11 +75,11 @@ jobs:
     - name: Download Cargo NDK
       if: contains(matrix.cargo-arg, 'ndk')
       run: |
-        rustup default beta
-        cargo +beta install cargo-ndk
+        rustup default nightly
+        cargo +nightly install cargo-ndk
         rustup target add aarch64-linux-android
     - name: Create Cargo LockFile
-      run: cargo +beta update
+      run: cargo +nightly update
 
     - uses: actions/cache@v2
       with:
@@ -92,7 +92,7 @@ jobs:
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
     - name: Build
-      run: cargo +beta ${{matrix.cargo-arg}} build --verbose --release
+      run: cargo +nightly ${{matrix.cargo-arg}} build --verbose --release
     - name: Rename and move files
       run: |
         ls ./target/release/
@@ -104,7 +104,7 @@ jobs:
       shell: bash  
     - name: Run tests
       if: ${{ !contains(matrix.cargo-arg, 'ndk') }}
-      run: cargo +beta test --verbose --release
+      run: cargo +nightly test --verbose --release
       
     - name: Upload to Release
       id: upload_file_release

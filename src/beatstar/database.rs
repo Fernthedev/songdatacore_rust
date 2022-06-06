@@ -3,7 +3,7 @@ use crate::beatstar::data::{
 };
 use crate::beatstar::ffi::{BeatStarDataFile, BeatStarSong, RustCStringWrapper};
 use crate::beatstar::BEAT_STAR_FILE;
-use anyhow::Context;
+use anyhow::{Context, bail, anyhow};
 use chrono::DateTime;
 use std::collections::HashMap;
 use std::io::{BufReader, Cursor, Read};
@@ -74,18 +74,18 @@ fn calculate_heatmap(
 
 pub fn beatstar_zip_content(
     response: ureq::Response,
-) -> Result<Vec<BeatStarSongJson>, anyhow::Error> {
+) -> anyhow::Result<Vec<BeatStarSongJson>> {
     assert!(response.has("Content-Length"));
     let len = response
         .header("Content-Length")
         .and_then(|s| s.parse::<usize>().ok())
-        .unwrap();
+        .ok_or_else(|| anyhow!("Unable to get header response for content length"))?;
 
     let mut bytes: Vec<u8> = Vec::with_capacity(len);
     response.into_reader().read_to_end(&mut bytes)?;
     let cursor = Cursor::new(&bytes);
 
-    let mut zip = zip::ZipArchive::new(cursor).unwrap();
+    let mut zip = zip::ZipArchive::new(cursor).context("Unable to read zip archive")?;
     assert!(!zip.is_empty());
     let file = zip.by_index(0)?;
     let reader = BufReader::new(file);
@@ -160,7 +160,7 @@ pub(crate) fn initialize_log() {
 ///
 /// Fetches the latest song data and stores it indefinitely
 ///
-pub fn beatstar_update_database() -> Option<Response> {
+pub fn beatstar_update_database() -> anyhow::Result<Option<Response>> {
     if BEAT_STAR_FILE.get().is_none() {
         initialize_log();
 
@@ -169,7 +169,7 @@ pub fn beatstar_update_database() -> Option<Response> {
 
         event!(Level::INFO, "Fetching from internet");
         let mut stopwatch = Stopwatch::start_new();
-        let response = AGENT.get(SCRAPED_SCORE_SABER_URL).call().unwrap();
+        let response = AGENT.get(SCRAPED_SCORE_SABER_URL).call()?;
         event!(
             Level::INFO,
             "Received data from internet in {0}ms",
@@ -178,8 +178,7 @@ pub fn beatstar_update_database() -> Option<Response> {
 
         if response.status() == HTTP_OK {
             let body: Vec<BeatStarSongJson> = beatstar_zip_content(response)
-                .context("Failed to parse scrapped beat saver data zip.")
-                .unwrap();
+                .context("Failed to parse scrapped beat saver data zip.")?;
             event!(
                 Level::INFO,
                 "Parsed beat file into json data in {0}ms",
@@ -189,7 +188,7 @@ pub fn beatstar_update_database() -> Option<Response> {
             // Get data inside file and map it
             let parsed_data = parse_beatstar(&body);
 
-            let json_size = std::mem::size_of_val::<BeatStarDataFile>(&parsed_data);
+            let json_size = std::mem::size_of_val::<BeatStarDataFile>(&parsed_data) + unsafe {std::mem::size_of_val_raw::<HashMap<RustCStringWrapper, BeatStarSong>>(parsed_data.songs)};
 
             BEAT_STAR_FILE.get_or_init(|| parsed_data);
 
@@ -202,22 +201,22 @@ pub fn beatstar_update_database() -> Option<Response> {
 
             stopwatch.stop();
         } else {
-            return Some(response);
+            return Ok(Some(response));
         }
     }
 
-    None
+    Ok(None)
 }
 
 ///
 /// Get the song list and clone it
 ///
-pub fn beatstar_retrieve_database() -> Result<&'static BeatStarDataFile, Response> {
-    if let Some(e) = beatstar_update_database() {
-        return Err(e);
+pub fn beatstar_retrieve_database() -> anyhow::Result<&'static BeatStarDataFile> {
+    if let Some(e) = beatstar_update_database()? {
+        bail!("Got response error {:?}", e);
     }
 
-    let bsf_mutex = BEAT_STAR_FILE.get().unwrap();
+    let bsf_mutex = BEAT_STAR_FILE.get().ok_or_else(|| anyhow!("Unable to read beat star file"))?;
 
     Ok(bsf_mutex)
 }
@@ -225,15 +224,15 @@ pub fn beatstar_retrieve_database() -> Result<&'static BeatStarDataFile, Respons
 ///
 /// Gets a song based on it's hash
 ///
-pub fn beatstar_get_song(hash: &str) -> Result<Option<&BeatStarSong>, Response> {
+pub fn beatstar_get_song(hash: &str) -> anyhow::Result<Option<&BeatStarSong>> {
     unsafe {
-        return match beatstar_update_database() {
+        return match beatstar_update_database()? {
             None => {
                 // Get songs map
-                Ok((*BEAT_STAR_FILE.get().unwrap().songs)
+                Ok((*BEAT_STAR_FILE.get().ok_or_else(|| anyhow!("Unable to read beat star file"))?.songs)
                     .get(&RustCStringWrapper::new(hash.into())))
             }
-            Some(e) => Err(e),
+            Some(e) => bail!("Got error response {:?}", e),
         };
     }
 }
@@ -243,16 +242,11 @@ pub fn beatstar_get_song(hash: &str) -> Result<Option<&BeatStarSong>, Response> 
 /// This takes an average of 700 MS, do better?
 ///
 fn parse_beatstar(songs: &[BeatStarSongJson]) -> BeatStarDataFile {
-    let mut song_converted: Vec<BeatStarSong> = vec![];
-
-    for song in songs {
-        song_converted.push(BeatStarSong::convert(song))
-    }
-
     let mut song_map: HashMap<RustCStringWrapper, BeatStarSong> = HashMap::new();
 
-    for song in song_converted {
-        song_map.insert(song.hash.clone(), song);
+    for song in songs {
+        let converted = BeatStarSong::convert(song);
+        song_map.insert(converted.hash.clone(), converted);
     }
 
     BeatStarDataFile {

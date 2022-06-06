@@ -32,7 +32,7 @@ macro_rules! map_extern {
         #[no_mangle]
         pub extern "C" fn $func_get_name(self_i: &$clazz, index: &$k) -> *const $r {
             unsafe {
-                return match (*self_i.$hashmap).get(index) {
+                return match (*self_i.$hashmap).get(&index) {
                     Some(e) => e,
                     None => ptr::null(),
                 }

@@ -37,7 +37,7 @@ pub extern "C" fn Beatstar_RetrieveDatabase() -> *const BeatStarDataFile {
             event!(
                 Level::ERROR,
                 "Unable to fetch from database {0}",
-                e.into_string().unwrap()
+                format!("{:?}", e)
             );
             ptr::null()
         }
@@ -51,9 +51,6 @@ pub extern "C" fn Beatstar_RetrieveDatabase() -> *const BeatStarDataFile {
 #[no_mangle]
 pub unsafe extern "C" fn Beatstar_GetSong(hash: *const c_char) -> *const BeatStarSong {
     use crate::beatstar::database::beatstar_get_song;
-    use crate::beatstar::database::initialize_log;
-
-    initialize_log();
     let span = span!(Level::ERROR, "Beatstar_GetSongExtern");
     let _guard = span.enter();
 
@@ -77,7 +74,7 @@ pub unsafe extern "C" fn Beatstar_GetSong(hash: *const c_char) -> *const BeatSta
             event!(
                 Level::ERROR,
                 "Unable to fetch from database {0}",
-                e.into_string().unwrap()
+                format!("{:?}", e)
             );
             ptr::null()
         }
@@ -92,7 +89,7 @@ pub struct RustCStringWrapper {
 
 impl Clone for RustCStringWrapper {
     fn clone(&self) -> Self {
-        RustCStringWrapper::new(self.to_string().into())
+        RustCStringWrapper::from_copy(self.string_data)
     }
 }
 
@@ -140,7 +137,7 @@ impl Drop for RustCStringWrapper {
             return;
         }
         unsafe {
-            CString::from_raw(self.string_data);
+            drop(CString::from_raw(self.string_data));
         }
     }
 }
@@ -155,7 +152,7 @@ impl RustCStringWrapper {
     fn from_copy(c_str: *const c_char) -> Self {
         unsafe {
             let old_string = CStr::from_ptr(c_str);
-            let new_string = CString::new(old_string.to_string_lossy().to_string())
+            let new_string = CString::new(old_string.to_bytes())
                 .expect("Unable to create a new C String from a C string");
             RustCStringWrapper {
                 string_data: new_string.into_raw(),

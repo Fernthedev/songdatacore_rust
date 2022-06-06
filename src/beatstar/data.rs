@@ -74,6 +74,7 @@ pub struct BeatStarSongDifficultyStatsJson {
     pub diff: String,
     #[serde(default)]
     pub stars: f32,
+    #[serde(default)]
     pub ranked: bool,
     pub njs: f32,
 
