@@ -193,4 +193,4 @@ jobs:
 
     - name: QPM Publish
       if: contains(matrix.cargo-arg, 'ndk')
-      run: ./QPM/qpm-rust publish
+      run: ./QPM/qpm-rust publish ${{secrets.QPM_TOKEN}}
