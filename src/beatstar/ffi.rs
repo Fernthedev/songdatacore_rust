@@ -235,9 +235,6 @@ pub struct BeatStarSong {
     #[serde(rename = "LevelAuthorName")]
     pub level_author_name: RustCStringWrapper,
 
-    #[serde(rename = "Diffs")]
-    pub diffs: Vec<BeatStarSongDifficultyStats>,
-
     #[serde(rename = "Uploaded")]
     pub uploaded: RustCStringWrapper,
 
@@ -248,14 +245,18 @@ pub struct BeatStarSong {
     pub hash: RustCStringWrapper,
 
     #[serde(skip_deserializing)]
-    pub characteristics:
-        HashMap<BeatStarCharacteristics, HashMap<RustCStringWrapper, BeatStarSongDifficultyStats>>,
-
-    #[serde(skip_deserializing)]
     pub heat: f32,
 
     #[serde(skip_deserializing)]
     pub rating: f32,
+
+    // last to make field offsets proper
+    #[serde(rename = "Diffs")]
+    pub diffs: Vec<BeatStarSongDifficultyStats>,
+
+    #[serde(skip_deserializing)]
+    pub characteristics:
+    HashMap<BeatStarCharacteristics, HashMap<RustCStringWrapper, BeatStarSongDifficultyStats>>,
 }
 
 impl BeatStarSong {
@@ -410,13 +411,14 @@ pub struct BeatStarSongDifficultyStats {
 
     #[serde(skip_deserializing)]
     pub diff_characteristics: BeatStarCharacteristics,
-    pub requirements: Vec<RustCStringWrapper>,
 
     #[serde(rename = "RankedUpdateTime")]
     pub ranked_update_time: RustCStringWrapper,
 
     #[serde(skip_deserializing)]
     pub ranked_update_time_unix_epoch: UnixTime,
+
+    pub requirements: Vec<RustCStringWrapper>,
 }
 
 vec_extern!(

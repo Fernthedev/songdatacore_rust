@@ -31,12 +31,21 @@ crates = ["song_data_core_rust"]
 ## default: false
 #parse_deps = true
 
+# Table of things to append to the body of any struct, union, or enum that has the
+# given name. This can be used to add things like methods which don't change ABI.
+[export.body]
+"Vec<T>" = """
+  
+"""
+"Vec" = """
+  
+"""
 
 [struct]
 # generates operator==
-derive_eq = true
+# derive_eq = true
 # generates operator!=
-derive_neq = true
+# derive_neq = true
 
 
 [enum]

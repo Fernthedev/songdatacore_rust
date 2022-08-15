@@ -27,13 +27,6 @@ struct Vec;
 
 struct RustCStringWrapper {
   char *string_data;
-
-  bool operator==(const RustCStringWrapper& other) const {
-    return string_data == other.string_data;
-  }
-  bool operator!=(const RustCStringWrapper& other) const {
-    return string_data != other.string_data;
-  }
 };
 
 using UnixTime = time_t;
@@ -50,42 +43,9 @@ struct BeatStarSongDifficultyStats {
   uint32_t obstacles;
   RustCStringWrapper char_;
   BeatStarCharacteristics diff_characteristics;
-  Vec<RustCStringWrapper> requirements;
   RustCStringWrapper ranked_update_time;
   UnixTime ranked_update_time_unix_epoch;
-
-  bool operator==(const BeatStarSongDifficultyStats& other) const {
-    return diff == other.diff &&
-           approximate_pp_value == other.approximate_pp_value &&
-           stars == other.stars &&
-           ranked == other.ranked &&
-           njs == other.njs &&
-           njs_offset == other.njs_offset &&
-           bombs == other.bombs &&
-           notes == other.notes &&
-           obstacles == other.obstacles &&
-           char_ == other.char_ &&
-           diff_characteristics == other.diff_characteristics &&
-           requirements == other.requirements &&
-           ranked_update_time == other.ranked_update_time &&
-           ranked_update_time_unix_epoch == other.ranked_update_time_unix_epoch;
-  }
-  bool operator!=(const BeatStarSongDifficultyStats& other) const {
-    return diff != other.diff ||
-           approximate_pp_value != other.approximate_pp_value ||
-           stars != other.stars ||
-           ranked != other.ranked ||
-           njs != other.njs ||
-           njs_offset != other.njs_offset ||
-           bombs != other.bombs ||
-           notes != other.notes ||
-           obstacles != other.obstacles ||
-           char_ != other.char_ ||
-           diff_characteristics != other.diff_characteristics ||
-           requirements != other.requirements ||
-           ranked_update_time != other.ranked_update_time ||
-           ranked_update_time_unix_epoch != other.ranked_update_time_unix_epoch;
-  }
+  Vec<RustCStringWrapper> requirements;
 };
 
 struct BeatStarSong {
@@ -98,61 +58,17 @@ struct BeatStarSong {
   RustCStringWrapper song_sub_name;
   RustCStringWrapper song_author_name;
   RustCStringWrapper level_author_name;
-  Vec<BeatStarSongDifficultyStats> diffs;
   RustCStringWrapper uploaded;
   UnixTime uploaded_unix_time;
   RustCStringWrapper hash;
-  HashMap<BeatStarCharacteristics, HashMap<RustCStringWrapper, BeatStarSongDifficultyStats>> characteristics;
   float heat;
   float rating;
-
-  bool operator==(const BeatStarSong& other) const {
-    return bpm == other.bpm &&
-           upvotes == other.upvotes &&
-           downvotes == other.downvotes &&
-           duration_secs == other.duration_secs &&
-           key == other.key &&
-           song_name == other.song_name &&
-           song_sub_name == other.song_sub_name &&
-           song_author_name == other.song_author_name &&
-           level_author_name == other.level_author_name &&
-           diffs == other.diffs &&
-           uploaded == other.uploaded &&
-           uploaded_unix_time == other.uploaded_unix_time &&
-           hash == other.hash &&
-           characteristics == other.characteristics &&
-           heat == other.heat &&
-           rating == other.rating;
-  }
-  bool operator!=(const BeatStarSong& other) const {
-    return bpm != other.bpm ||
-           upvotes != other.upvotes ||
-           downvotes != other.downvotes ||
-           duration_secs != other.duration_secs ||
-           key != other.key ||
-           song_name != other.song_name ||
-           song_sub_name != other.song_sub_name ||
-           song_author_name != other.song_author_name ||
-           level_author_name != other.level_author_name ||
-           diffs != other.diffs ||
-           uploaded != other.uploaded ||
-           uploaded_unix_time != other.uploaded_unix_time ||
-           hash != other.hash ||
-           characteristics != other.characteristics ||
-           heat != other.heat ||
-           rating != other.rating;
-  }
+  Vec<BeatStarSongDifficultyStats> diffs;
+  HashMap<BeatStarCharacteristics, HashMap<RustCStringWrapper, BeatStarSongDifficultyStats>> characteristics;
 };
 
 struct BeatStarDataFile {
   HashMap<RustCStringWrapper, BeatStarSong> songs;
-
-  bool operator==(const BeatStarDataFile& other) const {
-    return songs == other.songs;
-  }
-  bool operator!=(const BeatStarDataFile& other) const {
-    return songs != other.songs;
-  }
 };
 
 extern "C" {
