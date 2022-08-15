@@ -26,7 +26,7 @@ strum = "0.24"
 strum_macros = "0.24"
 
 lazy_static = "1.4.0"
-once_cell = "1.12"
+once_cell = "1.13"
 
 [lib]
 crate-type = ["cdylib"]
