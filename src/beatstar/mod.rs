@@ -18,26 +18,27 @@ mod tests {
     use stopwatch::Stopwatch;
 
     #[test]
-    fn download_db() {
+    fn download_db() -> anyhow::Result<()> {
         let mut stopwatch = Stopwatch::start_new();
         println!("Getting db");
-        assert!(beatstar_update_database().is_ok_and(|f| f.is_none()));
+        beatstar_update_database()?;
         println!("Got DB, took {0}ms", stopwatch.elapsed().as_millis());
         stopwatch.restart();
-        assert!(beatstar_update_database().is_ok_and(|f| f.is_none()));
+        beatstar_update_database()?;
         assert!(stopwatch.elapsed().as_millis() < 1000);
         println!("Memory Cache works");
+        Ok(())
     }
 
     #[test]
     fn download_song_stars() {
-        download_db();
+        download_db().unwrap();
         // assert_eq!(2 + 2, 4);
 
         let song = beatstar_get_song("4B2DA842B687EC4CFBC948C583C21C79D4120DE0");
 
         unsafe {
-            let diff = (*song
+            let diff = (song
                 .expect("Could not fetch song database")
                 .expect("Could not find song in database")
                 .diffs)[0]
@@ -49,7 +50,7 @@ mod tests {
 
     #[test]
     fn get_song_characteristics() {
-        download_db();
+        download_db().unwrap();
         // assert_eq!(2 + 2, 4);
 
         let song = beatstar_get_song("B9BED84A127130BF80AFF18DB677EDD215CE0AB5")
@@ -58,13 +59,13 @@ mod tests {
 
         for i in 0..3 {
             unsafe {
-                let diff_map_size = (&song).characteristics.as_ref().unwrap().len();
+                let diff_map_size = (&song).characteristics.len();
                 println!("Characteristics size: {0}", diff_map_size);
                 assert_eq!(diff_map_size, 2);
-                for (chara, diff_map) in &*(&song).characteristics {
+                for (chara, diff_map) in &song.characteristics {
                     println!("Got the char!: {0} {1}", chara.to_string(), diff_map.len());
 
-                    for (diff_name, diff) in &*diff_map {
+                    for (diff_name, diff) in diff_map {
                         println!("Got the diff!: {0} with pp {1}", diff.diff.to_string(), diff.approximate_pp_value);
                     }
                 }

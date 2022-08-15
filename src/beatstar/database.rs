@@ -1,11 +1,12 @@
-use crate::beatstar::data::{
-    BeatStarCharacteristics, BeatStarSongDifficultyStatsJson, BeatStarSongJson, UnixTime,
+use crate::beatstar::data::{BeatStarCharacteristics, UnixTime};
+use crate::beatstar::ffi::{
+    BeatStarDataFile, BeatStarSong, BeatStarSongDifficultyStats, RustCStringWrapper,
 };
-use crate::beatstar::ffi::{BeatStarDataFile, BeatStarSong, RustCStringWrapper};
 use crate::beatstar::BEAT_STAR_FILE;
-use anyhow::{Context, bail, anyhow};
+use anyhow::{anyhow, bail, Context};
 use chrono::DateTime;
 use std::collections::HashMap;
+use std::ffi::CStr;
 use std::io::{BufReader, Cursor, Read};
 use std::ops::Sub;
 use std::str::FromStr;
@@ -13,7 +14,7 @@ use std::sync::Once;
 use std::time::{Duration as OtherDuration, SystemTime};
 use stopwatch::Stopwatch;
 use tracing::{event, span, Level};
-use ureq::{Agent, Response};
+use ureq::{Agent};
 
 use super::numstuff::log10;
 
@@ -31,7 +32,7 @@ lazy_static! {
         .build();
 }
 
-fn calculate_pp(diff: &BeatStarSongDifficultyStatsJson) -> f32 {
+fn calculate_pp(diff: &BeatStarSongDifficultyStats) -> f32 {
     if diff.stars <= 0.05 || !diff.ranked {
         return 0.0;
     }
@@ -43,7 +44,7 @@ fn calculate_pp(diff: &BeatStarSongDifficultyStatsJson) -> f32 {
 ///
 /// An algorithm for getting a song's rating.
 ///
-fn calculate_rating(self_i: &BeatStarSongJson) -> f32 {
+fn calculate_rating(self_i: &BeatStarSong) -> f32 {
     let tot: f32 = (self_i.upvotes + self_i.downvotes) as f32;
     let tmp: f32 = (self_i.upvotes) as f32 / tot;
 
@@ -52,7 +53,7 @@ fn calculate_rating(self_i: &BeatStarSongJson) -> f32 {
 
 // https://github.com/bsmg/beatsaver-reloaded/blob/420be0c964f3b4ee9c876f8b7fdb25495526138d/server/src/mongo/models/Beatmap.ts#L179-L192
 fn calculate_heatmap(
-    song: &BeatStarSongJson,
+    song: &BeatStarSong,
     time_past_epoch: UnixTime,
     uploaded_date: UnixTime,
 ) -> Result<f32, anyhow::Error> {
@@ -72,9 +73,7 @@ fn calculate_heatmap(
     Ok(heat as f32)
 }
 
-pub fn beatstar_zip_content(
-    response: ureq::Response,
-) -> anyhow::Result<Vec<BeatStarSongJson>> {
+pub fn beatstar_zip_content(response: ureq::Response) -> anyhow::Result<Vec<BeatStarSong>> {
     assert!(response.has("Content-Length"));
     let len = response
         .header("Content-Length")
@@ -93,46 +92,49 @@ pub fn beatstar_zip_content(
     // let mut string_buffer = Vec::new();
     // file.read_to_end(&mut string_buffer)?;
 
-    let mut json: Vec<BeatStarSongJson> = serde_json::from_reader(reader)?;
+    let mut json: Vec<BeatStarSong> = serde_json::from_reader(reader)?;
     let time_past_epoch = SystemTime::now().sub(BEATSAVER_EPOCH).elapsed()?.as_secs() as UnixTime;
 
     for song in &mut json {
         // sort characteristics
-        type DiffMap = HashMap<String, BeatStarSongDifficultyStatsJson>;
+        type DiffMap = HashMap<RustCStringWrapper, BeatStarSongDifficultyStats>;
 
         let mut characteristics: HashMap<BeatStarCharacteristics, DiffMap> = HashMap::new();
 
         'diffLoop: for diff in &mut song.diffs {
-            let char = BeatStarCharacteristics::from_str(diff.char.as_str());
+            let char = BeatStarCharacteristics::from_str(diff.char.to_string().as_str());
 
             if char.is_err() {
                 event!(
                     Level::ERROR,
                     "Could not parse characteristic {0} for song {1}",
-                    diff.char.as_str(),
-                    song.hash.as_str()
+                    diff.char.to_string().as_str(),
+                    song.hash.to_string().as_str()
                 );
                 continue 'diffLoop;
             }
 
-            let char_map = characteristics
+            diff.diff_characteristics = char.unwrap();
+
+            let char_entry = characteristics
                 .entry(char.unwrap())
                 .or_insert_with(DiffMap::new);
 
             // calculate approximate PP
             diff.approximate_pp_value = calculate_pp(diff);
 
-            let ranked_time = DateTime::parse_from_rfc3339(&song.uploaded)?.timestamp() as UnixTime;
+            let ranked_time = DateTime::parse_from_rfc3339(song.uploaded.to_string().as_str())?
+                .timestamp() as UnixTime;
             diff.ranked_update_time_unix_epoch = ranked_time;
 
-            char_map.insert(diff.diff.clone(), diff.clone());
+            char_entry.insert(diff.diff.clone(), diff.clone());
         }
 
         song.characteristics = characteristics;
 
         // calculate heatmap
-        let upload_unix_time =
-            DateTime::parse_from_rfc3339(&song.uploaded)?.timestamp() as UnixTime;
+        let upload_unix_time = DateTime::parse_from_rfc3339(song.uploaded.to_string().as_str())?
+            .timestamp() as UnixTime;
         song.heat = calculate_heatmap(song, time_past_epoch, upload_unix_time).unwrap_or(0f32);
         song.uploaded_unix_time = upload_unix_time;
         song.rating = calculate_rating(song);
@@ -160,7 +162,7 @@ pub(crate) fn initialize_log() {
 ///
 /// Fetches the latest song data and stores it indefinitely
 ///
-pub fn beatstar_update_database() -> anyhow::Result<Option<Response>> {
+pub fn beatstar_update_database() -> anyhow::Result<()> {
     if BEAT_STAR_FILE.get().is_none() {
         initialize_log();
 
@@ -177,7 +179,7 @@ pub fn beatstar_update_database() -> anyhow::Result<Option<Response>> {
         );
 
         if response.status() == HTTP_OK {
-            let body: Vec<BeatStarSongJson> = beatstar_zip_content(response)
+            let body: Vec<BeatStarSong> = beatstar_zip_content(response)
                 .context("Failed to parse scrapped beat saver data zip.")?;
             event!(
                 Level::INFO,
@@ -186,9 +188,11 @@ pub fn beatstar_update_database() -> anyhow::Result<Option<Response>> {
             );
 
             // Get data inside file and map it
-            let parsed_data = parse_beatstar(&body);
+            let parsed_data = parse_beatstar(body);
 
-            let json_size = std::mem::size_of_val::<BeatStarDataFile>(&parsed_data) + unsafe {std::mem::size_of_val_raw::<HashMap<RustCStringWrapper, BeatStarSong>>(parsed_data.songs)};
+            let json_size = parsed_data.songs.iter()
+                .map(|(str, diff)| unsafe { CStr::from_ptr(str.string_data).to_bytes().len() } + std::mem::size_of_val(&diff))
+                .reduce(|acc, i| acc + i).unwrap_or(0);
 
             BEAT_STAR_FILE.get_or_init(|| parsed_data);
 
@@ -201,22 +205,22 @@ pub fn beatstar_update_database() -> anyhow::Result<Option<Response>> {
 
             stopwatch.stop();
         } else {
-            return Ok(Some(response));
+            bail!("Did not receive HTTP_OK status. {:?}", response);
         }
     }
 
-    Ok(None)
+    Ok(())
 }
 
 ///
 /// Get the song list and clone it
 ///
 pub fn beatstar_retrieve_database() -> anyhow::Result<&'static BeatStarDataFile> {
-    if let Some(e) = beatstar_update_database()? {
-        bail!("Got response error {:?}", e);
-    }
+    beatstar_update_database()?;
 
-    let bsf_mutex = BEAT_STAR_FILE.get().ok_or_else(|| anyhow!("Unable to read beat star file"))?;
+    let bsf_mutex = BEAT_STAR_FILE
+        .get()
+        .ok_or_else(|| anyhow!("Unable to read beat star file"))?;
 
     Ok(bsf_mutex)
 }
@@ -225,31 +229,23 @@ pub fn beatstar_retrieve_database() -> anyhow::Result<&'static BeatStarDataFile>
 /// Gets a song based on it's hash
 ///
 pub fn beatstar_get_song(hash: &str) -> anyhow::Result<Option<&BeatStarSong>> {
-    unsafe {
-        return match beatstar_update_database()? {
-            None => {
-                // Get songs map
-                Ok((*BEAT_STAR_FILE.get().ok_or_else(|| anyhow!("Unable to read beat star file"))?.songs)
-                    .get(&RustCStringWrapper::new(hash.into())))
-            }
-            Some(e) => bail!("Got error response {:?}", e),
-        };
-    }
+    beatstar_update_database()?;
+    Ok((BEAT_STAR_FILE
+        .get()
+        .ok_or_else(|| anyhow!("Unable to read beat star file"))?
+        .songs)
+        .get(&RustCStringWrapper::new(hash.into())))
 }
 
 ///
 /// Parses the entire JSON to FFI friendly types
 /// This takes an average of 700 MS, do better?
 ///
-fn parse_beatstar(songs: &[BeatStarSongJson]) -> BeatStarDataFile {
-    let mut song_map: HashMap<RustCStringWrapper, BeatStarSong> = HashMap::new();
+fn parse_beatstar(songs: Vec<BeatStarSong>) -> BeatStarDataFile {
+    let song_map: HashMap<RustCStringWrapper, BeatStarSong> = songs
+        .into_iter()
+        .map(|s: BeatStarSong| (s.hash.clone(), s))
+        .collect();
 
-    for song in songs {
-        let converted = BeatStarSong::convert(song);
-        song_map.insert(converted.hash.clone(), converted);
-    }
-
-    BeatStarDataFile {
-        songs: Box::into_raw(Box::new(song_map)),
-    }
+    BeatStarDataFile { songs: song_map }
 }

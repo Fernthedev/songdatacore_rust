@@ -2,6 +2,7 @@ use std::cmp::Ordering;
 use std::hash::{Hash, Hasher};
 use std::os::raw::c_char;
 
+use serde::Deserialize;
 use tracing::{event, span, Level};
 
 //noinspection RsExternalLinter
@@ -11,13 +12,10 @@ use crate::vec_extern;
 //noinspection RsExternalLinter
 #[macro_use]
 use crate::map_extern;
-use crate::beatstar::data::{
-    BeatStarCharacteristics, BeatStarSongDifficultyStatsJson, BeatStarSongJson, UnixTime
-};
+use crate::beatstar::data::{BeatStarCharacteristics, UnixTime};
 use std::collections::HashMap;
 use std::ffi::{CStr, CString};
 use std::ptr;
-use std::str::FromStr;
 
 ///
 /// Get the song list and clone it
@@ -81,7 +79,7 @@ pub unsafe extern "C" fn Beatstar_GetSong(hash: *const c_char) -> *const BeatSta
     }
 }
 
-#[derive(Eq)]
+#[derive(Eq, Debug)]
 #[repr(C)]
 pub struct RustCStringWrapper {
     pub string_data: *mut c_char,
@@ -171,9 +169,26 @@ impl From<*mut c_char> for RustCStringWrapper {
     }
 }
 
+impl<'de> Deserialize<'de> for RustCStringWrapper {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let value: serde_json::Value = serde::Deserialize::deserialize(deserializer)?;
+
+        Ok(RustCStringWrapper::new(
+            value
+                .as_str()
+                .ok_or_else(|| serde::de::Error::custom("Not a string"))?
+                .as_bytes()
+                .to_vec(),
+        ))
+    }
+}
+
 #[repr(C)]
 pub struct BeatStarDataFile {
-    pub songs: *const HashMap<RustCStringWrapper, BeatStarSong>,
+    pub songs: HashMap<RustCStringWrapper, BeatStarSong>,
 }
 
 unsafe impl Send for BeatStarDataFile {}
@@ -190,76 +205,107 @@ map_extern!(
 );
 
 #[repr(C)]
+#[derive(Deserialize, Clone, Debug)]
+#[serde(rename_all = "PascalCase", rename = "with typo")]
 pub struct BeatStarSong {
+    #[serde(rename = "Bpm")]
     pub bpm: f32,
+
+    #[serde(rename = "Upvotes")]
     pub upvotes: u32,
+
+    #[serde(rename = "Downvotes")]
     pub downvotes: u32,
+
+    #[serde(rename = "Duration")]
     pub duration_secs: u32,
+
+    #[serde(rename = "Key")]
     pub key: RustCStringWrapper,
+
+    #[serde(rename = "SongName")]
     pub song_name: RustCStringWrapper,
+
+    #[serde(rename = "SongSubName")]
     pub song_sub_name: RustCStringWrapper,
+
+    #[serde(rename = "SongAuthorName")]
     pub song_author_name: RustCStringWrapper,
+
+    #[serde(rename = "LevelAuthorName")]
     pub level_author_name: RustCStringWrapper,
-    pub diffs: *const Vec<BeatStarSongDifficultyStats>,
+
+    #[serde(rename = "Diffs")]
+    pub diffs: Vec<BeatStarSongDifficultyStats>,
+
+    #[serde(rename = "Uploaded")]
     pub uploaded: RustCStringWrapper,
+
+    #[serde(skip_deserializing)]
     pub uploaded_unix_time: UnixTime,
+
+    #[serde(rename = "Hash")]
     pub hash: RustCStringWrapper,
-    pub characteristics: *const HashMap<
-        BeatStarCharacteristics,
-        HashMap<RustCStringWrapper, BeatStarSongDifficultyStats>,
-    >,
+
+    #[serde(skip_deserializing)]
+    pub characteristics:
+        HashMap<BeatStarCharacteristics, HashMap<RustCStringWrapper, BeatStarSongDifficultyStats>>,
+
+    #[serde(skip_deserializing)]
     pub heat: f32,
+
+    #[serde(skip_deserializing)]
     pub rating: f32,
 }
 
 impl BeatStarSong {
-    pub fn convert(og: &BeatStarSongJson) -> BeatStarSong {
-        let mut diff_convert: Vec<BeatStarSongDifficultyStats> = vec![];
-        diff_convert.reserve(og.diffs.len());
+    // fn convert(og: &BeatStarSongJson) -> BeatStarSong {
+    //     let mut diff_convert: Vec<BeatStarSongDifficultyStats> = vec![];
+    //     diff_convert.reserve(og.diffs.len());
 
-        for diff in &og.diffs {
-            diff_convert.push(BeatStarSongDifficultyStats::convert(diff))
-        }
+    //     for diff in &og.diffs {
+    //         diff_convert.push(BeatStarSongDifficultyStats::convert(diff))
+    //     }
 
-        let mut characteristics_convert: HashMap<
-            BeatStarCharacteristics,
-            HashMap<RustCStringWrapper, BeatStarSongDifficultyStats>,
-        > = HashMap::new();
-        characteristics_convert.reserve(og.characteristics.len());
+    //     let mut characteristics_convert: HashMap<
+    //         BeatStarCharacteristics,
+    //         HashMap<RustCStringWrapper, BeatStarSongDifficultyStats>,
+    //     > = HashMap::new();
+    //     characteristics_convert.reserve(og.characteristics.len());
 
-        for (char_star, char_map) in &og.characteristics {
-            let mut char_map_convert: HashMap<RustCStringWrapper, BeatStarSongDifficultyStats> =
-                HashMap::new();
+    //     for (char_star, char_map) in &og.characteristics {
+    //         let mut char_map_convert: HashMap<RustCStringWrapper, BeatStarSongDifficultyStats> =
+    //             HashMap::new();
 
-            for (str, diff_json) in char_map {
-                char_map_convert.insert(
-                    RustCStringWrapper::new(str.clone().into()),
-                    BeatStarSongDifficultyStats::convert(diff_json),
-                );
-            }
+    //         for (str, diff_json) in char_map {
+    //             char_map_convert.insert(
+    //                 RustCStringWrapper::new(str.clone().into()),
+    //                 BeatStarSongDifficultyStats::convert(diff_json),
+    //             );
+    //         }
 
-            characteristics_convert.insert(*char_star, char_map_convert);
-        }
+    //         characteristics_convert.insert(*char_star, char_map_convert);
+    //     }
 
-        BeatStarSong {
-            bpm: og.bpm,
-            upvotes: og.upvotes,
-            downvotes: og.downvotes,
-            song_name: RustCStringWrapper::new(og.song_name.clone().into()),
-            song_author_name: RustCStringWrapper::new(og.song_author_name.clone().into()),
-            song_sub_name: RustCStringWrapper::new(og.song_sub_name.clone().into()),
-            key: RustCStringWrapper::new(og.key.clone().into()),
-            diffs: Box::into_raw(Box::new(diff_convert)),
-            uploaded: RustCStringWrapper::new(og.uploaded.clone().into()),
-            hash: RustCStringWrapper::new(og.hash.clone().into()),
-            characteristics: Box::into_raw(Box::new(characteristics_convert)),
-            duration_secs: og.duration_secs,
-            level_author_name: RustCStringWrapper::new(og.level_author_name.clone().into()),
-            heat: og.heat,
-            uploaded_unix_time: og.uploaded_unix_time,
-            rating: og.rating,
-        }
-    }
+    //     BeatStarSong {
+    //         bpm: og.bpm,
+    //         upvotes: og.upvotes,
+    //         downvotes: og.downvotes,
+    //         song_name: RustCStringWrapper::new(og.song_name.clone().into()),
+    //         song_author_name: RustCStringWrapper::new(og.song_author_name.clone().into()),
+    //         song_sub_name: RustCStringWrapper::new(og.song_sub_name.clone().into()),
+    //         key: RustCStringWrapper::new(og.key.clone().into()),
+    //         diffs: diff_convert,
+    //         uploaded: RustCStringWrapper::new(og.uploaded.clone().into()),
+    //         hash: RustCStringWrapper::new(og.hash.clone().into()),
+    //         characteristics: characteristics_convert,
+    //         duration_secs: og.duration_secs,
+    //         level_author_name: RustCStringWrapper::new(og.level_author_name.clone().into()),
+    //         heat: og.heat,
+    //         uploaded_unix_time: og.uploaded_unix_time,
+    //         rating: og.rating,
+    //     }
+    // }
 }
 
 // https://github.com/bsmg/beatsaver-reloaded/blob/420be0c964f3b4ee9c876f8b7fdb25495526138d/server/src/mongo/models/Beatmap.ts#L172-L177
@@ -279,6 +325,7 @@ vec_extern!(
     BeatStarSong,
     diffs,
     BeatStarSongDifficultyStats,
+    BeatStarSong_DiffPtr,
     BeatStarSong_DiffGet,
     BeatStarSong_DiffLen
 );
@@ -295,12 +342,10 @@ pub extern "C" fn BeatStarSong_map_Characteristics_DifficultyStatsLen(
     self_i: &BeatStarSong,
     beat_char: BeatStarCharacteristics,
 ) -> usize {
-    unsafe {
-        return match (*self_i.characteristics).get(&beat_char) {
-            None => 0,
-            Some(e) => e.len(),
-        };
-    }
+    return match self_i.characteristics.get(&beat_char) {
+        None => 0,
+        Some(e) => e.len(),
+    };
 }
 
 ///
@@ -312,14 +357,12 @@ pub extern "C" fn BeatStarSong_map_Characteristics_DifficultyStatsGet(
     beat_char: BeatStarCharacteristics,
     beat_key2: *const c_char,
 ) -> *const BeatStarSongDifficultyStats {
-    unsafe {
-        return match (*self_i.characteristics).get(&beat_char) {
-            Some(map) => match map.get(&RustCStringWrapper::from_copy(beat_key2)) {
-                None => ptr::null(),
-                Some(e) => e,
-            },
+    match self_i.characteristics.get(&beat_char) {
+        Some(map) => match map.get(&RustCStringWrapper::from_copy(beat_key2)) {
             None => ptr::null(),
-        };
+            Some(e) => e,
+        },
+        None => ptr::null(),
     }
 }
 
@@ -332,38 +375,47 @@ pub extern "C" fn BeatStarSong_map_Characteristics_DifficultyStatsGetStrKey(
     beat_char: BeatStarCharacteristics,
     index: usize,
 ) -> *const c_char {
-    unsafe {
-        return match (*self_i.characteristics).get(&beat_char) {
-            None => ptr::null(),
-            Some(e) => {
-                let keys: Vec<&RustCStringWrapper> = e.keys().collect();
+    match self_i.characteristics.get(&beat_char) {
+        None => ptr::null(),
+        Some(e) => {
+            let keys: Vec<&RustCStringWrapper> = e.keys().collect();
 
-                match keys.get(index) {
-                    None => ptr::null(),
-                    Some(s) => {
-                        return s.string_data;
-                    }
-                }
+            match keys.get(index) {
+                None => ptr::null(),
+                Some(s) => s.string_data,
             }
-        };
+        }
     }
 }
 
-#[derive(Clone)]
+#[derive(Deserialize, Clone, Debug)]
 #[repr(C)]
+#[serde(rename_all = "PascalCase")]
 pub struct BeatStarSongDifficultyStats {
     pub diff: RustCStringWrapper,
+    #[serde(skip_deserializing)]
     pub approximate_pp_value: f32,
+    #[serde(default)]
     pub stars: f32,
+    #[serde(default)]
     pub ranked: bool,
     pub njs: f32,
+    #[serde(rename = "NjsOffset")]
     pub njs_offset: f32,
     pub bombs: u32,
     pub notes: u32,
     pub obstacles: u32,
+    #[serde(rename = "Char")]
     pub char: RustCStringWrapper,
+
+    #[serde(skip_deserializing)]
     pub diff_characteristics: BeatStarCharacteristics,
-    pub requirements: *const Vec<RustCStringWrapper>,
+    pub requirements: Vec<RustCStringWrapper>,
+
+    #[serde(rename = "RankedUpdateTime")]
+    pub ranked_update_time: RustCStringWrapper,
+
+    #[serde(skip_deserializing)]
     pub ranked_update_time_unix_epoch: UnixTime,
 }
 
@@ -371,38 +423,39 @@ vec_extern!(
     BeatStarSongDifficultyStats,
     requirements,
     RustCStringWrapper,
+    BeatStarSongDifficultyStats_ptr,
     BeatStarSongDifficultyStats_requirementsGet,
     BeatStarSongDifficultyStats_requirementsLen
 );
 
 impl BeatStarSongDifficultyStats {
-    pub fn convert(og: &BeatStarSongDifficultyStatsJson) -> BeatStarSongDifficultyStats {
-        let mut requirements: Vec<RustCStringWrapper> = vec![];
-        requirements.reserve(og.requirements.len());
+    // fn convert(og: &BeatStarSongDifficultyStatsJson) -> BeatStarSongDifficultyStats {
+    //     let mut requirements: Vec<RustCStringWrapper> = vec![];
+    //     requirements.reserve(og.requirements.len());
 
-        for requirement in &og.requirements {
-            requirements.push(RustCStringWrapper::new(requirement.clone().into()))
-        }
+    //     for requirement in &og.requirements {
+    //         requirements.push(RustCStringWrapper::new(requirement.clone().into()))
+    //     }
 
-        let characteristic_enum = match BeatStarCharacteristics::from_str(og.char.as_str()) {
-            Ok(e) => e,
-            Err(_) => BeatStarCharacteristics::Unknown,
-        };
+    //     let characteristic_enum = match BeatStarCharacteristics::from_str(og.char.as_str()) {
+    //         Ok(e) => e,
+    //         Err(_) => BeatStarCharacteristics::Unknown,
+    //     };
 
-        BeatStarSongDifficultyStats {
-            diff: RustCStringWrapper::new(og.diff.clone().into()),
-            stars: og.stars,
-            ranked: og.ranked,
-            njs: og.njs,
-            bombs: og.bombs,
-            notes: og.notes,
-            obstacles: og.obstacles,
-            char: RustCStringWrapper::new(og.char.clone().into()),
-            njs_offset: og.njs_offset,
-            requirements: Box::into_raw(Box::new(requirements)),
-            approximate_pp_value: og.approximate_pp_value,
-            diff_characteristics: characteristic_enum,
-            ranked_update_time_unix_epoch: og.ranked_update_time_unix_epoch,
-        }
-    }
+    //     BeatStarSongDifficultyStats {
+    //         diff: RustCStringWrapper::new(og.diff.clone().into()),
+    //         stars: og.stars,
+    //         ranked: og.ranked,
+    //         njs: og.njs,
+    //         bombs: og.bombs,
+    //         notes: og.notes,
+    //         obstacles: og.obstacles,
+    //         char: RustCStringWrapper::new(og.char.clone().into()),
+    //         njs_offset: og.njs_offset,
+    //         requirements,
+    //         approximate_pp_value: og.approximate_pp_value,
+    //         diff_characteristics: characteristic_enum,
+    //         ranked_update_time_unix_epoch: og.ranked_update_time_unix_epoch,
+    //     }
+    // }
 }

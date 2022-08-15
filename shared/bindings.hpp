@@ -50,7 +50,8 @@ struct BeatStarSongDifficultyStats {
   uint32_t obstacles;
   RustCStringWrapper char_;
   BeatStarCharacteristics diff_characteristics;
-  const Vec<RustCStringWrapper> *requirements;
+  Vec<RustCStringWrapper> requirements;
+  RustCStringWrapper ranked_update_time;
   UnixTime ranked_update_time_unix_epoch;
 
   bool operator==(const BeatStarSongDifficultyStats& other) const {
@@ -66,6 +67,7 @@ struct BeatStarSongDifficultyStats {
            char_ == other.char_ &&
            diff_characteristics == other.diff_characteristics &&
            requirements == other.requirements &&
+           ranked_update_time == other.ranked_update_time &&
            ranked_update_time_unix_epoch == other.ranked_update_time_unix_epoch;
   }
   bool operator!=(const BeatStarSongDifficultyStats& other) const {
@@ -81,6 +83,7 @@ struct BeatStarSongDifficultyStats {
            char_ != other.char_ ||
            diff_characteristics != other.diff_characteristics ||
            requirements != other.requirements ||
+           ranked_update_time != other.ranked_update_time ||
            ranked_update_time_unix_epoch != other.ranked_update_time_unix_epoch;
   }
 };
@@ -95,11 +98,11 @@ struct BeatStarSong {
   RustCStringWrapper song_sub_name;
   RustCStringWrapper song_author_name;
   RustCStringWrapper level_author_name;
-  const Vec<BeatStarSongDifficultyStats> *diffs;
+  Vec<BeatStarSongDifficultyStats> diffs;
   RustCStringWrapper uploaded;
   UnixTime uploaded_unix_time;
   RustCStringWrapper hash;
-  const HashMap<BeatStarCharacteristics, HashMap<RustCStringWrapper, BeatStarSongDifficultyStats>> *characteristics;
+  HashMap<BeatStarCharacteristics, HashMap<RustCStringWrapper, BeatStarSongDifficultyStats>> characteristics;
   float heat;
   float rating;
 
@@ -142,7 +145,7 @@ struct BeatStarSong {
 };
 
 struct BeatStarDataFile {
-  const HashMap<RustCStringWrapper, BeatStarSong> *songs;
+  HashMap<RustCStringWrapper, BeatStarSong> songs;
 
   bool operator==(const BeatStarDataFile& other) const {
     return songs == other.songs;
@@ -189,6 +192,9 @@ uintptr_t BeatStarDataFile_map_SongsLen(const BeatStarDataFile *self_i);
 float BeatStarSong_rating(const BeatStarSong *self_i);
 
 /// Gets the item in the vector from index
+const BeatStarSongDifficultyStats *BeatStarSong_DiffPtr(const BeatStarSong *self_i);
+
+/// Gets the item in the vector from index
 const BeatStarSongDifficultyStats *BeatStarSong_DiffGet(const BeatStarSong *self_i,
                                                         uintptr_t index);
 
@@ -231,6 +237,9 @@ const BeatStarSongDifficultyStats *BeatStarSong_map_Characteristics_DifficultySt
 const char *BeatStarSong_map_Characteristics_DifficultyStatsGetStrKey(const BeatStarSong *self_i,
                                                                       BeatStarCharacteristics beat_char,
                                                                       uintptr_t index);
+
+/// Gets the item in the vector from index
+const RustCStringWrapper *BeatStarSongDifficultyStats_ptr(const BeatStarSongDifficultyStats *self_i);
 
 /// Gets the item in the vector from index
 const RustCStringWrapper *BeatStarSongDifficultyStats_requirementsGet(const BeatStarSongDifficultyStats *self_i,

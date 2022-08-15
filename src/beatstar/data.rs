@@ -1,62 +1,8 @@
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use std::result;
 use std::str::FromStr;
 
 pub type UnixTime = libc::time_t;
-
-#[derive(Serialize, Deserialize, Clone, Debug)]
-#[serde(rename_all = "PascalCase", rename = "with typo")]
-pub struct BeatStarSongJson {
-    #[serde(rename = "Bpm")]
-    pub bpm: f32,
-
-    #[serde(rename = "Upvotes")]
-    pub upvotes: u32,
-
-    #[serde(rename = "Downvotes")]
-    pub downvotes: u32,
-
-    #[serde(rename = "Duration")]
-    pub duration_secs: u32,
-
-    #[serde(rename = "Key")]
-    pub key: String,
-
-    #[serde(rename = "SongName")]
-    pub song_name: String,
-
-    #[serde(rename = "SongSubName")]
-    pub song_sub_name: String,
-
-    #[serde(rename = "SongAuthorName")]
-    pub song_author_name: String,
-
-    #[serde(rename = "LevelAuthorName")]
-    pub level_author_name: String,
-
-    #[serde(rename = "Diffs")]
-    pub diffs: Vec<BeatStarSongDifficultyStatsJson>,
-
-    #[serde(rename = "Uploaded")]
-    pub uploaded: String,
-
-    #[serde(skip_deserializing)]
-    pub uploaded_unix_time: UnixTime,
-
-    #[serde(rename = "Hash")]
-    pub hash: String,
-
-    #[serde(skip_deserializing)]
-    pub characteristics:
-        HashMap<BeatStarCharacteristics, HashMap<String, BeatStarSongDifficultyStatsJson>>,
-
-    #[serde(skip_deserializing)]
-    pub heat: f32,
-
-    #[serde(skip_deserializing)]
-    pub rating: f32,
-}
 
 #[repr(C)]
 pub enum SongDiffs {
@@ -67,37 +13,6 @@ pub enum SongDiffs {
     ExpertPlus,
 }
 
-
-#[derive(Serialize, Deserialize, Clone, Debug)]
-#[serde(rename_all = "PascalCase")]
-pub struct BeatStarSongDifficultyStatsJson {
-    pub diff: String,
-    #[serde(default)]
-    pub stars: f32,
-    #[serde(default)]
-    pub ranked: bool,
-    pub njs: f32,
-
-    #[serde(rename = "NjsOffset")]
-    pub njs_offset: f32,
-
-    pub requirements: Vec<String>,
-
-    pub bombs: u32,
-    pub notes: u32,
-    pub obstacles: u32,
-    #[serde(rename = "Char")]
-    pub char: String,
-
-    #[serde(skip_deserializing)]
-    pub approximate_pp_value: f32,
-
-    #[serde(rename = "RankedUpdateTime")]
-    pub ranked_update_time: String,
-
-    #[serde(skip_deserializing)]
-    pub ranked_update_time_unix_epoch: UnixTime,
-}
 
 #[repr(C)]
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Hash, Copy, Clone)]
@@ -111,6 +26,12 @@ pub enum BeatStarCharacteristics {
     Degree90,
     Degree360,
     Lawless,
+}
+
+impl Default for BeatStarCharacteristics {
+    fn default() -> Self {
+        BeatStarCharacteristics::Unknown
+    }
 }
 
 impl std::fmt::Display for BeatStarCharacteristics {
