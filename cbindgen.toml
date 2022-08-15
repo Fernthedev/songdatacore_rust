@@ -40,6 +40,19 @@ crates = ["song_data_core_rust"]
 "Vec" = """
   
 """
+"std::Vec<T>" = """
+  
+"""
+"std::Vec" = """
+  
+"""
+"song_data_core::Vec<T>" = """
+  
+"""
+"song_data_core::Vec" = """
+  
+"""
+
 
 [struct]
 # generates operator==

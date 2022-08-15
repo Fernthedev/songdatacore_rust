@@ -1,11 +1,14 @@
 #pragma once
 
-template <typename K = void, typename V = void, typename Hasher = void>
-struct HashMap {
+namespace song_data_core  {
+template <typename K, typename V, typename Hasher>
+struct HashMap
+{
 };
 
-template <typename T = void>
+template <typename T>
 struct Vec {
 };
+}
 
 #include "bindings.hpp"
