@@ -31,7 +31,6 @@ mod tests {
         Ok(())
     }
 
-    #[test]
     fn load_db_from_file() -> anyhow::Result<()> {
         let mut stopwatch = Stopwatch::start_new();
         println!("Getting db from file");
@@ -62,6 +61,15 @@ mod tests {
             println!("Got the notes!: {0} {1}", diff.diff.to_string(), diff.notes);
             println!("Got the stars!: {0} {1}", diff.diff.to_string(), diff.stars);
         }
+    }
+
+    #[test]
+    fn download_songs_file() {
+        let mut path = env::current_dir().unwrap();
+        path.push("combinedScrappedDataTest.zip");
+        beatstar_download_database_to_file(path.to_str().unwrap()).unwrap();
+
+        load_db_from_file().unwrap();
     }
 
     #[test]

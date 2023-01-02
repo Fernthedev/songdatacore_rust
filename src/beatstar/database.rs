@@ -7,7 +7,8 @@ use anyhow::{anyhow, bail, Context};
 use chrono::DateTime;
 use std::collections::HashMap;
 use std::ffi::CStr;
-use std::io::{BufReader, Cursor, Read};
+use std::io::{BufReader, Cursor, Read, self};
+use std::path::Path;
 use std::ops::Sub;
 use std::str::FromStr;
 use std::sync::Once;
@@ -224,6 +225,46 @@ pub(crate) fn initialize_log() {
     INIT_LOG.call_once(|| {
         tracing_subscriber::fmt::init();
     });
+}
+
+pub fn beatstar_download_database_to_file(file_path: &str) -> anyhow::Result<()>  {
+    initialize_log();
+
+    let span = span!(Level::TRACE, "beatstar_database_update");
+    let _guard = span.enter();
+
+    event!(Level::INFO, "Fetching from internet");
+    let mut stopwatch = Stopwatch::start_new();
+    let response = AGENT.get(SCRAPED_SCORE_SABER_URL).call()?;
+    event!(
+        Level::INFO,
+        "Received data from internet in {0}ms",
+        stopwatch.elapsed().as_millis()
+    );
+
+    // TODO: Get latest change and return it to not reload it again
+    if response.status() == HTTP_OK {
+        assert!(response.has("Content-Length"));
+        let len = response
+            .header("Content-Length")
+            .and_then(|s| s.parse::<usize>().ok())
+            .ok_or_else(|| anyhow!("Unable to get header response for content length"))?;
+
+        let mut bytes: Vec<u8> = Vec::with_capacity(len);
+        response.into_reader().read_to_end(&mut bytes)?;
+        
+        // Overwrite the file if it exists
+        let exists = Path::new(file_path).exists();
+        if exists {
+            std::fs::remove_file(file_path)?;
+        }
+        std::fs::write(file_path, bytes)?;
+
+        stopwatch.stop();
+        Ok(())
+    } else {
+        bail!("Did not receive HTTP_OK status. {:?}", response);
+    }
 }
 
 ///
