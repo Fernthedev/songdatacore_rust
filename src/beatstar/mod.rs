@@ -36,10 +36,10 @@ mod tests {
         println!("Getting db from file");
         let mut path = env::current_dir().unwrap();
         path.push("combinedScrappedDataTest.zip");
-        beatstar_retrieve_database_from_file(path.to_str().unwrap())?;
+        beatstar_update_database_file(path.to_str().unwrap())?;
         println!("Got DB, took {0}ms", stopwatch.elapsed().as_millis());
         stopwatch.restart();
-        beatstar_update_database()?;
+        beatstar_update_database_network()?;
         assert!(stopwatch.elapsed().as_millis() < 1000);
         println!("Memory Cache works");
         Ok(())

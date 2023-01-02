@@ -7,7 +7,7 @@ use anyhow::{anyhow, bail, Context};
 use chrono::DateTime;
 use std::collections::HashMap;
 use std::ffi::CStr;
-use std::io::{BufReader, Cursor, Read, self};
+use std::io::{BufReader, Cursor, Read};
 use std::path::Path;
 use std::ops::Sub;
 use std::str::FromStr;
@@ -104,65 +104,6 @@ pub fn beatstar_zip_content(bytes: Vec<u8>) -> anyhow::Result<Vec<BeatStarSong>>
     reader.read_to_string(&mut str)?;
 
     let mut json: Vec<BeatStarSong> = serde_json::from_str(&str)?;
-    let time_past_epoch = SystemTime::now().sub(BEATSAVER_EPOCH).elapsed()?.as_secs() as UnixTime;
-
-    for song in &mut json {
-        // sort characteristics
-        type DiffMap = HashMap<RustCStringWrapper, BeatStarSongDifficultyStats>;
-
-        let mut characteristics: HashMap<BeatStarCharacteristics, DiffMap> = HashMap::new();
-
-        'diffLoop: for diff in &mut song.diffs {
-            let char = BeatStarCharacteristics::from_str(diff.char.to_string().as_str());
-
-            if char.is_err() {
-                event!(
-                    Level::ERROR,
-                    "Could not parse characteristic {0} for song {1}",
-                    diff.char.to_string().as_str(),
-                    song.hash.to_string().as_str()
-                );
-                continue 'diffLoop;
-            }
-
-            diff.diff_characteristics = char.unwrap();
-
-            let char_entry = characteristics
-                .entry(char.unwrap())
-                .or_insert_with(DiffMap::new);
-
-            // calculate approximate PP
-            diff.approximate_pp_value = calculate_pp(diff);
-
-            let ranked_time = DateTime::parse_from_rfc3339(song.uploaded.to_string().as_str())?
-                .timestamp() as UnixTime;
-            diff.ranked_update_time_unix_epoch = ranked_time;
-
-            char_entry.insert(diff.diff.clone(), diff.clone());
-        }
-
-        song.characteristics = characteristics;
-
-        // calculate heatmap
-        let upload_unix_time = DateTime::parse_from_rfc3339(song.uploaded.to_string().as_str())?
-            .timestamp() as UnixTime;
-        song.heat = calculate_heatmap(song, time_past_epoch, upload_unix_time).unwrap_or(0f32);
-        song.uploaded_unix_time = upload_unix_time;
-        song.rating = calculate_rating(song);
-    }
-
-    Ok(json)
-}
-
-pub fn beatstar_zip_content_from_bytes(bytes: Vec<u8>) -> anyhow::Result<Vec<BeatStarSong>> {
-    let cursor = Cursor::new(&bytes);
-
-    let mut zip = zip::ZipArchive::new(cursor).context("Unable to read zip archive")?;
-    assert!(!zip.is_empty());
-    let file = zip.by_index(0)?;
-    let reader = BufReader::new(file);
-
-    let mut json: Vec<BeatStarSong> = serde_json::from_reader(reader)?;
     let time_past_epoch = SystemTime::now().sub(BEATSAVER_EPOCH).elapsed()?.as_secs() as UnixTime;
 
     for song in &mut json {
@@ -352,15 +293,38 @@ pub fn beatstar_retrieve_database() -> anyhow::Result<&'static BeatStarDataFile>
     Ok(bsf_mutex)
 }
 
-fn beatstar_update_database_from_file(file_path: &str) -> anyhow::Result<()> {
-    initialize_log();
-    // Read zip from path
-    let bytes: Vec<u8> = std::fs::read(file_path)?;
-    
-    let mut stopwatch = Stopwatch::start_new();
 
-    let body: Vec<BeatStarSong> = beatstar_zip_content_from_bytes(bytes)
-        .context("Failed to parse scrapped beat saver data zip.")?;
+pub fn beatstar_update_database_file(file_path: &str) -> anyhow::Result<()> {
+    // If already initialized
+    // if BEAT_STAR_FILE.get().is_some() {
+    //     return Ok(());
+    // }
+
+    // let lock = match BEAT_STAR_MUTEX.try_lock() {
+    //     Ok(guard) => guard,
+    //     Err(_) => {
+    //         drop(BEAT_STAR_MUTEX.lock().unwrap());
+    //         return Ok(());
+    //     }
+    // };
+
+    // This is fine, since while multiple threads can call it, only one function gets executed
+    // the rest block
+    BEAT_STAR_FILE.get_or_try_init(|| -> anyhow::Result<_> {
+
+        initialize_log();
+
+        let span = span!(Level::TRACE, "beatstar_database_update");
+        let _guard = span.enter();
+
+        event!(Level::INFO, "Fetching from file");
+        let mut stopwatch = Stopwatch::start_new();
+        
+        // Read zip from path
+        let bytes: Vec<u8> = std::fs::read(file_path)?;
+
+        let body: Vec<BeatStarSong> = beatstar_zip_content(bytes)
+            .context("Failed to parse scrapped beat saver data zip.")?;
         event!(
             Level::INFO,
             "Parsed beat file into json data in {0}ms",
@@ -371,10 +335,8 @@ fn beatstar_update_database_from_file(file_path: &str) -> anyhow::Result<()> {
         let parsed_data = parse_beatstar(body);
 
         let json_size = parsed_data.songs.iter()
-            .map(|(str, diff)| unsafe { CStr::from_ptr(str.string_data).to_bytes().len() } + std::mem::size_of_val(&diff))
-            .reduce(|acc, i| acc + i).unwrap_or(0);
-
-        BEAT_STAR_FILE.get_or_init(|| parsed_data);
+                .map(|(str, diff)| unsafe { CStr::from_ptr(str.string_data).to_bytes().len() } + std::mem::size_of_val(diff))
+                .reduce(|acc, i| acc + i).unwrap_or(0);
 
         event!(
             Level::INFO,
@@ -384,6 +346,11 @@ fn beatstar_update_database_from_file(file_path: &str) -> anyhow::Result<()> {
         );
 
         stopwatch.stop();
+        Ok(parsed_data)
+    })?;
+
+    // drop(lock);
+
     Ok(())
 }
 
@@ -391,7 +358,7 @@ fn beatstar_update_database_from_file(file_path: &str) -> anyhow::Result<()> {
 /// Get the song list and clone it
 ///
 pub fn beatstar_retrieve_database_from_file(file_path: &str) -> anyhow::Result<&'static BeatStarDataFile> {
-    beatstar_update_database_from_file(file_path)?;
+    beatstar_update_database_file(file_path)?;
 
     let bsf_mutex = BEAT_STAR_FILE
         .get()
