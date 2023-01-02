@@ -87,12 +87,15 @@ pub fn beatstar_zip_content(response: ureq::Response) -> anyhow::Result<Vec<Beat
     let mut zip = zip::ZipArchive::new(cursor).context("Unable to read zip archive")?;
     assert!(!zip.is_empty());
     let file = zip.by_index(0)?;
-    let reader = BufReader::new(file);
+    let mut reader = BufReader::new(file);
 
     // let mut string_buffer = Vec::new();
     // file.read_to_end(&mut string_buffer)?;
 
-    let mut json: Vec<BeatStarSong> = serde_json::from_reader(reader)?;
+    let mut str = String::with_capacity(8 * 1024 * 1024);
+    reader.read_to_string(&mut str)?;
+
+    let mut json: Vec<BeatStarSong> = serde_json::from_str(&str)?;
     let time_past_epoch = SystemTime::now().sub(BEATSAVER_EPOCH).elapsed()?.as_secs() as UnixTime;
 
     for song in &mut json {
