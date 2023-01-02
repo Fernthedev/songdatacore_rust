@@ -79,6 +79,11 @@ extern "C" {
 const BeatStarDataFile *Beatstar_RetrieveDatabase();
 
 ///
+/// Get the song list and clone it
+///
+const BeatStarDataFile *Beatstar_RetrieveDatabaseLocal(const char *file_path);
+
+///
 /// Get the song based on hash
 ///
 ///

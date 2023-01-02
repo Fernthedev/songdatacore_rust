@@ -153,6 +153,65 @@ pub fn beatstar_zip_content(bytes: Vec<u8>) -> anyhow::Result<Vec<BeatStarSong>>
     Ok(json)
 }
 
+pub fn beatstar_zip_content_from_bytes(bytes: Vec<u8>) -> anyhow::Result<Vec<BeatStarSong>> {
+    let cursor = Cursor::new(&bytes);
+
+    let mut zip = zip::ZipArchive::new(cursor).context("Unable to read zip archive")?;
+    assert!(!zip.is_empty());
+    let file = zip.by_index(0)?;
+    let reader = BufReader::new(file);
+
+    let mut json: Vec<BeatStarSong> = serde_json::from_reader(reader)?;
+    let time_past_epoch = SystemTime::now().sub(BEATSAVER_EPOCH).elapsed()?.as_secs() as UnixTime;
+
+    for song in &mut json {
+        // sort characteristics
+        type DiffMap = HashMap<RustCStringWrapper, BeatStarSongDifficultyStats>;
+
+        let mut characteristics: HashMap<BeatStarCharacteristics, DiffMap> = HashMap::new();
+
+        'diffLoop: for diff in &mut song.diffs {
+            let char = BeatStarCharacteristics::from_str(diff.char.to_string().as_str());
+
+            if char.is_err() {
+                event!(
+                    Level::ERROR,
+                    "Could not parse characteristic {0} for song {1}",
+                    diff.char.to_string().as_str(),
+                    song.hash.to_string().as_str()
+                );
+                continue 'diffLoop;
+            }
+
+            diff.diff_characteristics = char.unwrap();
+
+            let char_entry = characteristics
+                .entry(char.unwrap())
+                .or_insert_with(DiffMap::new);
+
+            // calculate approximate PP
+            diff.approximate_pp_value = calculate_pp(diff);
+
+            let ranked_time = DateTime::parse_from_rfc3339(song.uploaded.to_string().as_str())?
+                .timestamp() as UnixTime;
+            diff.ranked_update_time_unix_epoch = ranked_time;
+
+            char_entry.insert(diff.diff.clone(), diff.clone());
+        }
+
+        song.characteristics = characteristics;
+
+        // calculate heatmap
+        let upload_unix_time = DateTime::parse_from_rfc3339(song.uploaded.to_string().as_str())?
+            .timestamp() as UnixTime;
+        song.heat = calculate_heatmap(song, time_past_epoch, upload_unix_time).unwrap_or(0f32);
+        song.uploaded_unix_time = upload_unix_time;
+        song.rating = calculate_rating(song);
+    }
+
+    Ok(json)
+}
+
 #[cfg(target_os = "android")]
 pub(crate) fn initialize_log() {
     INIT_LOG.call_once(|| {
@@ -244,6 +303,54 @@ pub fn beatstar_update_database_network() -> anyhow::Result<()> {
 ///
 pub fn beatstar_retrieve_database() -> anyhow::Result<&'static BeatStarDataFile> {
     beatstar_update_database_network()?;
+
+    let bsf_mutex = BEAT_STAR_FILE
+        .get()
+        .ok_or_else(|| anyhow!("Unable to read beat star file"))?;
+
+    Ok(bsf_mutex)
+}
+
+fn beatstar_update_database_from_file(file_path: &str) -> anyhow::Result<()> {
+    initialize_log();
+    // Read zip from path
+    let bytes: Vec<u8> = std::fs::read(file_path)?;
+    
+    let mut stopwatch = Stopwatch::start_new();
+
+    let body: Vec<BeatStarSong> = beatstar_zip_content_from_bytes(bytes)
+        .context("Failed to parse scrapped beat saver data zip.")?;
+        event!(
+            Level::INFO,
+            "Parsed beat file into json data in {0}ms",
+            stopwatch.elapsed().as_millis()
+        );
+
+        // Get data inside file and map it
+        let parsed_data = parse_beatstar(body);
+
+        let json_size = parsed_data.songs.iter()
+            .map(|(str, diff)| unsafe { CStr::from_ptr(str.string_data).to_bytes().len() } + std::mem::size_of_val(&diff))
+            .reduce(|acc, i| acc + i).unwrap_or(0);
+
+        BEAT_STAR_FILE.get_or_init(|| parsed_data);
+
+        event!(
+            Level::INFO,
+            "Fully parsed beat file in {0}ms (json size: {1}kb)",
+            stopwatch.elapsed().as_millis(),
+            json_size / 1024
+        );
+
+        stopwatch.stop();
+    Ok(())
+}
+
+///
+/// Get the song list and clone it
+///
+pub fn beatstar_retrieve_database_from_file(file_path: &str) -> anyhow::Result<&'static BeatStarDataFile> {
+    beatstar_update_database_from_file(file_path)?;
 
     let bsf_mutex = BEAT_STAR_FILE
         .get()

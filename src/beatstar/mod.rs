@@ -1,6 +1,6 @@
 use crate::beatstar::ffi::BeatStarDataFile;
 use once_cell::sync::OnceCell;
-
+use std::env;
 mod data;
 mod database;
 
@@ -26,6 +26,21 @@ mod tests {
         println!("Got DB, took {0}ms", stopwatch.elapsed().as_millis());
         stopwatch.restart();
         beatstar_update_database_network()?;
+        assert!(stopwatch.elapsed().as_millis() < 1000);
+        println!("Memory Cache works");
+        Ok(())
+    }
+
+    #[test]
+    fn load_db_from_file() -> anyhow::Result<()> {
+        let mut stopwatch = Stopwatch::start_new();
+        println!("Getting db from file");
+        let mut path = env::current_dir().unwrap();
+        path.push("combinedScrappedDataTest.zip");
+        beatstar_retrieve_database_from_file(path.to_str().unwrap())?;
+        println!("Got DB, took {0}ms", stopwatch.elapsed().as_millis());
+        stopwatch.restart();
+        beatstar_update_database()?;
         assert!(stopwatch.elapsed().as_millis() < 1000);
         println!("Memory Cache works");
         Ok(())
