@@ -26,7 +26,7 @@ strum = "0.24"
 strum_macros = "0.24"
 
 lazy_static = "1.4.0"
-once_cell = "1.13"
+once_cell = "1"
 
 [lib]
 crate-type = ["cdylib"]
@@ -38,7 +38,7 @@ paranoid-android = {git = "https://github.com/raftario/paranoid-android.git"}
 tracing-subscriber = "0.3"
 
 [build-dependencies]
-cbindgen = "0.20.0"
+cbindgen = "0.24.3"
 cdylib-link-lines = "0.1"
 
 # If you want your Android docs to appear on docs.rs, add one of the Android
