@@ -35,7 +35,7 @@ pub extern "C" fn Beatstar_RetrieveDatabase() -> *const BeatStarDataFile {
             event!(
                 Level::ERROR,
                 "Unable to fetch from database {0}",
-                format!("{:?}", e)
+                format!("{e:?}")
             );
             ptr::null()
         }
@@ -72,7 +72,7 @@ pub unsafe extern "C" fn Beatstar_GetSong(hash: *const c_char) -> *const BeatSta
             event!(
                 Level::ERROR,
                 "Unable to fetch from database {0}",
-                format!("{:?}", e)
+                format!("{e:?}")
             );
             ptr::null()
         }
@@ -319,7 +319,7 @@ pub extern "C" fn BeatStarSong_rating(self_i: &BeatStarSong) -> f32 {
     let tot: f32 = (self_i.upvotes + self_i.downvotes) as f32;
     let tmp: f32 = (self_i.upvotes) as f32 / tot;
 
-    tmp - (tmp - 0.5) * (2_f32.powf(-(tot + 1f32).log10()) as f32)
+    tmp - (tmp - 0.5) * 2_f32.powf(-(tot + 1f32).log10())
 }
 
 vec_extern!(

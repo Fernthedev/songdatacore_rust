@@ -14,9 +14,10 @@ use std::sync::Once;
 use std::time::{Duration as OtherDuration, SystemTime};
 use stopwatch::Stopwatch;
 use tracing::{event, span, Level};
-use ureq::{Agent};
+use ureq::{Agent, Response};
 
 use super::numstuff::log10;
+// use super::BEAT_STAR_MUTEX;
 
 extern crate chrono;
 
@@ -48,7 +49,7 @@ fn calculate_rating(self_i: &BeatStarSong) -> f32 {
     let tot: f32 = (self_i.upvotes + self_i.downvotes) as f32;
     let tmp: f32 = (self_i.upvotes) as f32 / tot;
 
-    tmp - (tmp - 0.5) * (2_f32.powf(-(tot + 1f32).log10()) as f32)
+    tmp - (tmp - 0.5) * 2_f32.powf(-(tot + 1f32).log10())
 }
 
 // https://github.com/bsmg/beatsaver-reloaded/blob/420be0c964f3b4ee9c876f8b7fdb25495526138d/server/src/mongo/models/Beatmap.ts#L179-L192
@@ -73,7 +74,8 @@ fn calculate_heatmap(
     Ok(heat as f32)
 }
 
-pub fn beatstar_zip_content(response: ureq::Response) -> anyhow::Result<Vec<BeatStarSong>> {
+#[inline(always)]
+pub fn beatstar_zip_content_network(response: Response) -> anyhow::Result<Vec<BeatStarSong>> {
     assert!(response.has("Content-Length"));
     let len = response
         .header("Content-Length")
@@ -82,6 +84,11 @@ pub fn beatstar_zip_content(response: ureq::Response) -> anyhow::Result<Vec<Beat
 
     let mut bytes: Vec<u8> = Vec::with_capacity(len);
     response.into_reader().read_to_end(&mut bytes)?;
+
+    beatstar_zip_content(bytes)
+}
+
+pub fn beatstar_zip_content(bytes: Vec<u8>) -> anyhow::Result<Vec<BeatStarSong>> {
     let cursor = Cursor::new(&bytes);
 
     let mut zip = zip::ZipArchive::new(cursor).context("Unable to read zip archive")?;
@@ -165,8 +172,24 @@ pub(crate) fn initialize_log() {
 ///
 /// Fetches the latest song data and stores it indefinitely
 ///
-pub fn beatstar_update_database() -> anyhow::Result<()> {
-    if BEAT_STAR_FILE.get().is_none() {
+pub fn beatstar_update_database_network() -> anyhow::Result<()> {
+    // If already initialized
+    // if BEAT_STAR_FILE.get().is_some() {
+    //     return Ok(());
+    // }
+
+    // let lock = match BEAT_STAR_MUTEX.try_lock() {
+    //     Ok(guard) => guard,
+    //     Err(_) => {
+    //         drop(BEAT_STAR_MUTEX.lock().unwrap());
+    //         return Ok(());
+    //     }
+    // };
+
+    // This is fine, since while multiple threads can call it, only one function gets executed
+    // the rest block
+    BEAT_STAR_FILE.get_or_try_init(|| -> anyhow::Result<_> {
+
         initialize_log();
 
         let span = span!(Level::TRACE, "beatstar_database_update");
@@ -181,36 +204,37 @@ pub fn beatstar_update_database() -> anyhow::Result<()> {
             stopwatch.elapsed().as_millis()
         );
 
-        if response.status() == HTTP_OK {
-            let body: Vec<BeatStarSong> = beatstar_zip_content(response)
-                .context("Failed to parse scrapped beat saver data zip.")?;
-            event!(
-                Level::INFO,
-                "Parsed beat file into json data in {0}ms",
-                stopwatch.elapsed().as_millis()
-            );
-
-            // Get data inside file and map it
-            let parsed_data = parse_beatstar(body);
-
-            let json_size = parsed_data.songs.iter()
-                .map(|(str, diff)| unsafe { CStr::from_ptr(str.string_data).to_bytes().len() } + std::mem::size_of_val(&diff))
-                .reduce(|acc, i| acc + i).unwrap_or(0);
-
-            BEAT_STAR_FILE.get_or_init(|| parsed_data);
-
-            event!(
-                Level::INFO,
-                "Fully parsed beat file in {0}ms (json size: {1}kb)",
-                stopwatch.elapsed().as_millis(),
-                json_size / 1024
-            );
-
-            stopwatch.stop();
-        } else {
+        if response.status() != HTTP_OK {
             bail!("Did not receive HTTP_OK status. {:?}", response);
         }
-    }
+
+        let body: Vec<BeatStarSong> = beatstar_zip_content_network(response)
+            .context("Failed to parse scrapped beat saver data zip.")?;
+        event!(
+            Level::INFO,
+            "Parsed beat file into json data in {0}ms",
+            stopwatch.elapsed().as_millis()
+        );
+
+        // Get data inside file and map it
+        let parsed_data = parse_beatstar(body);
+
+        let json_size = parsed_data.songs.iter()
+                .map(|(str, diff)| unsafe { CStr::from_ptr(str.string_data).to_bytes().len() } + std::mem::size_of_val(diff))
+                .reduce(|acc, i| acc + i).unwrap_or(0);
+
+        event!(
+            Level::INFO,
+            "Fully parsed beat file in {0}ms (json size: {1}kb)",
+            stopwatch.elapsed().as_millis(),
+            json_size / 1024
+        );
+
+        stopwatch.stop();
+        Ok(parsed_data)
+    })?;
+
+    // drop(lock);
 
     Ok(())
 }
@@ -219,7 +243,7 @@ pub fn beatstar_update_database() -> anyhow::Result<()> {
 /// Get the song list and clone it
 ///
 pub fn beatstar_retrieve_database() -> anyhow::Result<&'static BeatStarDataFile> {
-    beatstar_update_database()?;
+    beatstar_update_database_network()?;
 
     let bsf_mutex = BEAT_STAR_FILE
         .get()
@@ -232,7 +256,7 @@ pub fn beatstar_retrieve_database() -> anyhow::Result<&'static BeatStarDataFile>
 /// Gets a song based on it's hash
 ///
 pub fn beatstar_get_song(hash: &str) -> anyhow::Result<Option<&BeatStarSong>> {
-    beatstar_update_database()?;
+    beatstar_update_database_network()?;
     Ok((BEAT_STAR_FILE
         .get()
         .ok_or_else(|| anyhow!("Unable to read beat star file"))?

@@ -10,6 +10,7 @@ mod ffi;
 mod numstuff;
 
 static BEAT_STAR_FILE: OnceCell<BeatStarDataFile> = OnceCell::new();
+// static BEAT_STAR_MUTEX: Mutex<i8> = Mutex::new(0);
 
 #[cfg(test)]
 mod tests {
@@ -21,10 +22,10 @@ mod tests {
     fn download_db() -> anyhow::Result<()> {
         let mut stopwatch = Stopwatch::start_new();
         println!("Getting db");
-        beatstar_update_database()?;
+        beatstar_update_database_network()?;
         println!("Got DB, took {0}ms", stopwatch.elapsed().as_millis());
         stopwatch.restart();
-        beatstar_update_database()?;
+        beatstar_update_database_network()?;
         assert!(stopwatch.elapsed().as_millis() < 1000);
         println!("Memory Cache works");
         Ok(())
@@ -57,19 +58,21 @@ mod tests {
             .unwrap()
             .unwrap();
 
-        for i in 0..3 {
-            unsafe {
-                let diff_map_size = (&song).characteristics.len();
-                println!("Characteristics size: {0}", diff_map_size);
-                assert_eq!(diff_map_size, 2);
-                for (chara, diff_map) in &song.characteristics {
-                    println!("Got the char!: {0} {1}", chara.to_string(), diff_map.len());
+        for _i in 0..3 {
+            let diff_map_size = song.characteristics.len();
+            println!("Characteristics size: {diff_map_size}");
+            assert_eq!(diff_map_size, 2);
+            for (chara, diff_map) in &song.characteristics {
+                println!("Got the char!: {0} {1}", chara, diff_map.len());
 
-                    for (diff_name, diff) in diff_map {
-                        println!("Got the diff!: {0} with pp {1}", diff.diff.to_string(), diff.approximate_pp_value);
-                    }
+                for (_diff_name, diff) in diff_map {
+                    println!(
+                        "Got the diff!: {0} with pp {1}",
+                        diff.diff.to_string(),
+                        diff.approximate_pp_value
+                    );
                 }
-            }
+            } 
         }
     }
 }
