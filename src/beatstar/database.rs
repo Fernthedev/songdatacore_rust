@@ -184,7 +184,10 @@ pub fn beatstar_download_database_to_file(file_path: &str) -> anyhow::Result<()>
     );
 
     // TODO: Get latest change and return it to not reload it again
-    if response.status() == HTTP_OK {
+    if response.status() != HTTP_OK {
+        bail!("Did not receive HTTP_OK status. {:?}", response);
+    } 
+
         assert!(response.has("Content-Length"));
         let len = response
             .header("Content-Length")
@@ -193,19 +196,19 @@ pub fn beatstar_download_database_to_file(file_path: &str) -> anyhow::Result<()>
 
         let mut bytes: Vec<u8> = Vec::with_capacity(len);
         response.into_reader().read_to_end(&mut bytes)?;
-        
-        // Overwrite the file if it exists
-        let exists = Path::new(file_path).exists();
-        if exists {
-            std::fs::remove_file(file_path)?;
-        }
-        std::fs::write(file_path, bytes)?;
+
+        std::fs::write(file_path, &bytes)?;
+
+        BEAT_STAR_FILE.get_or_try_init(|| -> anyhow::Result<_> {
+            let body = beatstar_zip_content(bytes)?;
+
+            Ok(parse_beatstar(body))
+        })?;
+
 
         stopwatch.stop();
         Ok(())
-    } else {
-        bail!("Did not receive HTTP_OK status. {:?}", response);
-    }
+    
 }
 
 ///
