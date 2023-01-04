@@ -379,7 +379,7 @@ pub fn beatstar_get_song(hash: &str) -> anyhow::Result<Option<&BeatStarSong>> {
         .get()
         .ok_or_else(|| anyhow!("Unable to read beat star file"))?
         .songs)
-        .get(&RustCStringWrapper::new(hash.into())))
+        .get(&RustCStringWrapper::new(hash)))
 }
 
 ///

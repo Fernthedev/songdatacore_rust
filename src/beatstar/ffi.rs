@@ -217,7 +217,7 @@ impl Drop for RustCStringWrapper {
 }
 
 impl RustCStringWrapper {
-    pub fn new(str_data: Vec<u8>) -> RustCStringWrapper {
+    pub fn new<T: Into<Vec<u8>>>(str_data: T) -> RustCStringWrapper {
         let c_string = CString::new(str_data).expect("RustCStringWrapper::new failed");
         let ptr = c_string.into_raw();
         RustCStringWrapper { string_data: ptr }
@@ -256,8 +256,7 @@ impl<'de> Deserialize<'de> for RustCStringWrapper {
             value
                 .as_str()
                 .ok_or_else(|| serde::de::Error::custom("Not a string"))?
-                .as_bytes()
-                .to_vec(),
+                .as_bytes(),
         ))
     }
 }

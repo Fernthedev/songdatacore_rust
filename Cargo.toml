@@ -34,11 +34,14 @@ crate-type = ["cdylib"]
 [target.'cfg(target_os = "android")'.dependencies]
 paranoid-android = {git = "https://github.com/raftario/paranoid-android.git"}
 
+[target.'cfg(target_os = "android")'.profile.release]
+codegen-units = 1
+
 [target.'cfg(not(target_os = "android"))'.dependencies]
 tracing-subscriber = "0.3"
 
 [build-dependencies]
-cbindgen = "0.24.3"
+cbindgen = "0.24"
 cdylib-link-lines = "0.1"
 
 # If you want your Android docs to appear on docs.rs, add one of the Android
@@ -51,5 +54,4 @@ targets = [
 [profile.release]
 opt-level = 3
 lto = true
-codegen-units = 1
 strip = "symbols"
