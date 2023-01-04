@@ -42,6 +42,82 @@ pub extern "C" fn Beatstar_RetrieveDatabase() -> *const BeatStarDataFile {
     }
 }
 
+
+///
+/// Download song database to a file, true if successful
+///
+#[no_mangle]
+pub unsafe extern "C" fn Beatstar_DownloadDatabaseToFile(file_path: *const c_char) -> bool {
+    use crate::beatstar::database::beatstar_download_database_to_file;
+    use crate::beatstar::database::initialize_log;
+
+    initialize_log();
+    let span = span!(Level::ERROR, "Beatstar_DownloadDatabaseToFile");
+    let _guard = span.enter();
+    
+    
+    if file_path.is_null() {
+        return false;
+    }
+
+    let raw = CStr::from_ptr(file_path);
+
+    let file_path_str = match raw.to_str() {
+        Ok(s) => s,
+        Err(_) => return false,
+    };
+    
+    match beatstar_download_database_to_file(file_path_str) {
+        Ok(e) => true,
+        Err(e) => {
+            event!(
+                Level::ERROR,
+                "Unable to fetch from database {0}",
+                format!("{:?}", e)
+            );
+            false
+        }
+    }
+}
+
+///
+/// Load database from a local file
+///
+#[no_mangle]
+pub unsafe extern "C" fn Beatstar_RetrieveDatabaseLocal(file_path: *const c_char) -> *const BeatStarDataFile {
+    use crate::beatstar::database::beatstar_retrieve_database_from_file;
+    use crate::beatstar::database::initialize_log;
+
+    initialize_log();
+    let span = span!(Level::ERROR, "Beatstar_RetrieveDatabaseLocal");
+    let _guard = span.enter();
+
+    
+    if file_path.is_null() {
+        return ptr::null();
+    }
+
+    let raw = CStr::from_ptr(file_path);
+
+    let file_path_str = match raw.to_str() {
+        Ok(s) => s,
+        Err(_) => return ptr::null_mut(),
+    };
+
+
+    match beatstar_retrieve_database_from_file(file_path_str) {
+        Ok(e) => e,
+        Err(e) => {
+            event!(
+                Level::ERROR,
+                "Unable to fetch from database {0}",
+                format!("{:?}", e)
+            );
+            ptr::null()
+        }
+    }
+}
+
 ///
 /// Get the song based on hash
 ///

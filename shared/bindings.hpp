@@ -79,6 +79,16 @@ extern "C" {
 const BeatStarDataFile *Beatstar_RetrieveDatabase();
 
 ///
+/// Download song database to a file, true if successful
+///
+bool Beatstar_DownloadDatabaseToFile(const char *file_path);
+
+///
+/// Load database from a local file
+///
+const BeatStarDataFile *Beatstar_RetrieveDatabaseLocal(const char *file_path);
+
+///
 /// Get the song based on hash
 ///
 ///

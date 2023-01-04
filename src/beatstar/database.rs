@@ -8,6 +8,7 @@ use chrono::DateTime;
 use std::collections::HashMap;
 use std::ffi::CStr;
 use std::io::{BufReader, Cursor, Read};
+use std::path::Path;
 use std::ops::Sub;
 use std::str::FromStr;
 use std::sync::Once;
@@ -167,6 +168,46 @@ pub(crate) fn initialize_log() {
     });
 }
 
+pub fn beatstar_download_database_to_file(file_path: &str) -> anyhow::Result<()>  {
+    initialize_log();
+
+    let span = span!(Level::TRACE, "beatstar_database_update");
+    let _guard = span.enter();
+
+    event!(Level::INFO, "Fetching from internet");
+    let mut stopwatch = Stopwatch::start_new();
+    let response = AGENT.get(SCRAPED_SCORE_SABER_URL).call()?;
+    event!(
+        Level::INFO,
+        "Received data from internet in {0}ms",
+        stopwatch.elapsed().as_millis()
+    );
+
+    // TODO: Get latest change and return it to not reload it again
+    if response.status() == HTTP_OK {
+        assert!(response.has("Content-Length"));
+        let len = response
+            .header("Content-Length")
+            .and_then(|s| s.parse::<usize>().ok())
+            .ok_or_else(|| anyhow!("Unable to get header response for content length"))?;
+
+        let mut bytes: Vec<u8> = Vec::with_capacity(len);
+        response.into_reader().read_to_end(&mut bytes)?;
+        
+        // Overwrite the file if it exists
+        let exists = Path::new(file_path).exists();
+        if exists {
+            std::fs::remove_file(file_path)?;
+        }
+        std::fs::write(file_path, bytes)?;
+
+        stopwatch.stop();
+        Ok(())
+    } else {
+        bail!("Did not receive HTTP_OK status. {:?}", response);
+    }
+}
+
 ///
 /// Returns None unless error, in which you get the response
 ///
@@ -244,6 +285,80 @@ pub fn beatstar_update_database_network() -> anyhow::Result<()> {
 ///
 pub fn beatstar_retrieve_database() -> anyhow::Result<&'static BeatStarDataFile> {
     beatstar_update_database_network()?;
+
+    let bsf_mutex = BEAT_STAR_FILE
+        .get()
+        .ok_or_else(|| anyhow!("Unable to read beat star file"))?;
+
+    Ok(bsf_mutex)
+}
+
+
+pub fn beatstar_update_database_file(file_path: &str) -> anyhow::Result<()> {
+    // If already initialized
+    // if BEAT_STAR_FILE.get().is_some() {
+    //     return Ok(());
+    // }
+
+    // let lock = match BEAT_STAR_MUTEX.try_lock() {
+    //     Ok(guard) => guard,
+    //     Err(_) => {
+    //         drop(BEAT_STAR_MUTEX.lock().unwrap());
+    //         return Ok(());
+    //     }
+    // };
+
+    // This is fine, since while multiple threads can call it, only one function gets executed
+    // the rest block
+    BEAT_STAR_FILE.get_or_try_init(|| -> anyhow::Result<_> {
+
+        initialize_log();
+
+        let span = span!(Level::TRACE, "beatstar_database_update");
+        let _guard = span.enter();
+
+        event!(Level::INFO, "Fetching from file");
+        let mut stopwatch = Stopwatch::start_new();
+        
+        // Read zip from path
+        let bytes: Vec<u8> = std::fs::read(file_path)?;
+
+        let body: Vec<BeatStarSong> = beatstar_zip_content(bytes)
+            .context("Failed to parse scrapped beat saver data zip.")?;
+        event!(
+            Level::INFO,
+            "Parsed beat file into json data in {0}ms",
+            stopwatch.elapsed().as_millis()
+        );
+
+        // Get data inside file and map it
+        let parsed_data = parse_beatstar(body);
+
+        let json_size = parsed_data.songs.iter()
+                .map(|(str, diff)| unsafe { CStr::from_ptr(str.string_data).to_bytes().len() } + std::mem::size_of_val(diff))
+                .reduce(|acc, i| acc + i).unwrap_or(0);
+
+        event!(
+            Level::INFO,
+            "Fully parsed beat file in {0}ms (json size: {1}kb)",
+            stopwatch.elapsed().as_millis(),
+            json_size / 1024
+        );
+
+        stopwatch.stop();
+        Ok(parsed_data)
+    })?;
+
+    // drop(lock);
+
+    Ok(())
+}
+
+///
+/// Get the song list and clone it
+///
+pub fn beatstar_retrieve_database_from_file(file_path: &str) -> anyhow::Result<&'static BeatStarDataFile> {
+    beatstar_update_database_file(file_path)?;
 
     let bsf_mutex = BEAT_STAR_FILE
         .get()
