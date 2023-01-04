@@ -8,7 +8,7 @@ use chrono::DateTime;
 use std::collections::HashMap;
 use std::ffi::CStr;
 use std::io::{BufReader, Cursor, Read};
-use std::path::Path;
+
 use std::ops::Sub;
 use std::str::FromStr;
 use std::sync::Once;
@@ -188,27 +188,27 @@ pub fn beatstar_download_database_to_file(file_path: &str) -> anyhow::Result<()>
         bail!("Did not receive HTTP_OK status. {:?}", response);
     } 
 
-        assert!(response.has("Content-Length"));
-        let len = response
-            .header("Content-Length")
-            .and_then(|s| s.parse::<usize>().ok())
-            .ok_or_else(|| anyhow!("Unable to get header response for content length"))?;
+    assert!(response.has("Content-Length"));
+    let len = response
+        .header("Content-Length")
+        .and_then(|s| s.parse::<usize>().ok())
+        .ok_or_else(|| anyhow!("Unable to get header response for content length"))?;
 
-        let mut bytes: Vec<u8> = Vec::with_capacity(len);
-        response.into_reader().read_to_end(&mut bytes)?;
+    let mut bytes: Vec<u8> = Vec::with_capacity(len);
+    response.into_reader().read_to_end(&mut bytes)?;
 
-        std::fs::write(file_path, &bytes)?;
+    std::fs::write(file_path, &bytes)?;
 
-        BEAT_STAR_FILE.get_or_try_init(|| -> anyhow::Result<_> {
-            let body = beatstar_zip_content(bytes)?;
+    BEAT_STAR_FILE.get_or_try_init(|| -> anyhow::Result<_> {
+        let body = beatstar_zip_content(bytes)?;
 
-            Ok(parse_beatstar(body))
-        })?;
+        Ok(parse_beatstar(body))
+    })?;
 
 
-        stopwatch.stop();
-        Ok(())
-    
+    stopwatch.stop();
+    Ok(())
+
 }
 
 ///

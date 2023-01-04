@@ -1,6 +1,7 @@
 use crate::beatstar::ffi::BeatStarDataFile;
 use once_cell::sync::OnceCell;
 use std::env;
+
 mod data;
 mod database;
 
@@ -26,24 +27,11 @@ mod tests {
         println!("Got DB, took {0}ms", stopwatch.elapsed().as_millis());
         stopwatch.restart();
         beatstar_update_database_network()?;
-        assert!(stopwatch.elapsed().as_millis() < 1000);
+        assert!(stopwatch.elapsed().as_millis() < 100);
         println!("Memory Cache works");
         Ok(())
     }
 
-    fn load_db_from_file() -> anyhow::Result<()> {
-        let mut stopwatch = Stopwatch::start_new();
-        println!("Getting db from file");
-        let mut path = env::current_dir().unwrap();
-        path.push("combinedScrappedDataTest.zip");
-        beatstar_update_database_file(path.to_str().unwrap())?;
-        println!("Got DB, took {0}ms", stopwatch.elapsed().as_millis());
-        stopwatch.restart();
-        beatstar_update_database_network()?;
-        assert!(stopwatch.elapsed().as_millis() < 1000);
-        println!("Memory Cache works");
-        Ok(())
-    }
 
     #[test]
     fn download_song_stars() {
@@ -52,24 +40,40 @@ mod tests {
 
         let song = beatstar_get_song("4B2DA842B687EC4CFBC948C583C21C79D4120DE0");
 
-        unsafe {
-            let diff = (song
-                .expect("Could not fetch song database")
-                .expect("Could not find song in database")
-                .diffs)[0]
-                .clone();
-            println!("Got the notes!: {0} {1}", diff.diff.to_string(), diff.notes);
-            println!("Got the stars!: {0} {1}", diff.diff.to_string(), diff.stars);
-        }
+        let diff = (song
+            .expect("Could not fetch song database")
+            .expect("Could not find song in database")
+            .diffs)[0]
+            .clone();
+        println!("Got the notes!: {0} {1}", diff.diff.to_string(), diff.notes);
+        println!("Got the stars!: {0} {1}", diff.diff.to_string(), diff.stars);
     }
 
     #[test]
-    fn download_songs_file() {
+    fn download_load_songs_file() -> anyhow::Result<()> {
+        // Download file
+        download_db().unwrap();
+
+        let mut stopwatch = Stopwatch::start_new();
+
+        println!("Downloading");
         let mut path = env::current_dir().unwrap();
         path.push("combinedScrappedDataTest.zip");
         beatstar_download_database_to_file(path.to_str().unwrap()).unwrap();
 
-        load_db_from_file().unwrap();
+        println!("Getting db from file");
+        beatstar_update_database_file(path.to_str().unwrap())?;
+
+        println!("Got DB, took {0}ms", stopwatch.elapsed().as_millis());
+
+        stopwatch.restart();
+
+        beatstar_update_database_network()?;
+        beatstar_update_database_file(path.to_str().unwrap())?;
+        assert!(stopwatch.elapsed().as_millis() < 100);
+
+        println!("Memory Cache works");
+        Ok(())
     }
 
     #[test]
@@ -95,7 +99,7 @@ mod tests {
                         diff.approximate_pp_value
                     );
                 }
-            } 
+            }
         }
     }
 }

@@ -68,12 +68,12 @@ pub unsafe extern "C" fn Beatstar_DownloadDatabaseToFile(file_path: *const c_cha
     };
     
     match beatstar_download_database_to_file(file_path_str) {
-        Ok(e) => true,
+        Ok(_e) => true,
         Err(e) => {
             event!(
                 Level::ERROR,
                 "Unable to fetch from database {0}",
-                format!("{:?}", e)
+                format!("{e:?}")
             );
             false
         }
@@ -111,7 +111,7 @@ pub unsafe extern "C" fn Beatstar_RetrieveDatabaseLocal(file_path: *const c_char
             event!(
                 Level::ERROR,
                 "Unable to fetch from database {0}",
-                format!("{:?}", e)
+                format!("{e:?}")
             );
             ptr::null()
         }
